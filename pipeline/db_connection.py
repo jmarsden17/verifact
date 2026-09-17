@@ -1,5 +1,4 @@
 """Holds functions for calculating embedding vectors using OpenAI's API."""
-from openai import OpenAI
 from dotenv import load_dotenv
 import os
 import psycopg2
