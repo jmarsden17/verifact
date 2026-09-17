@@ -3,9 +3,10 @@
 import re
 import json
 import streamlit as st
-import theme
-import functions as fn
-import visuals as vis
+import pandas as pd
+from . import theme
+from utils import db as fn
+from . import visuals as vis
 
 
 def render_page_header(title: str, description: str):
@@ -300,65 +301,101 @@ def render_breaking_stories_view():
                 render_verdict_badge(item["status"])
 
 
-def render_verification_logs_view():
-    """Filterable Data Table."""
-
-    render_page_header(
-        "Verification History Logs",
-        "Search and review past newsroom claim checks."
-    )
-
-    # Filter Controls Container
-    with st.container(border=True):
-        c1, c2 = st.columns([3, 1])
-        with c1:
-            query = st.text_input("Filter by Keyword",
-                                  placeholder="Search claim keywords...")
-        with c2:
-            status = st.selectbox(
-                "Verdict Filter",
-                ["All", "Supported", "Contradicted", "Missing Context", "Unclear"]
-            )
-
-    df = fn.get_filtered_logs(query, status)
-
-    # Data Table Output
-    st.dataframe(df, use_container_width=True, hide_index=True)
-
-
 def render_outlet_credibility_view():
-    """Metric Cards & Data Analytics."""
+    """Live metric cards & relational data analytics powered by RDS."""
 
     render_page_header(
         "Outlet Source Analytics",
-        "Distribution metrics across ingested fact-checking partners and model performance."
+        "Live distribution metrics across ingested fact-checking partners and techniques."
     )
 
+    # Fetch live RDS data
+    df = fn.fetch_analytics_data()
+
+    if df.empty:
+        st.warning(
+            "⚠️ Unable to load live database records. Please verify your RDS connection settings in your environment.")
+        return
+
+    # Data transformations
+    df["publish_datetime"] = pd.to_datetime(df["publish_datetime"])
+    df["access_datetime"] = pd.to_datetime(df["access_datetime"])
+
+    total_claims = len(df)
+    resurfaced_count = ((df["access_datetime"] -
+                        df["publish_datetime"]).dt.days > 7).sum()
+
+    top_publisher = df["publisher"].mode(
+    )[0] if "publisher" in df and not df["publisher"].dropna().empty else "N/A"
+    top_technique = df["technique"].mode(
+    )[0] if "technique" in df and not df["technique"].dropna().empty else "N/A"
+
+    # --- LIVE KPI CARDS ---
     m1, m2, m3, m4 = st.columns(4)
 
     with m1:
-        st.metric(label="Total Claims Checked",
-                  value="1,248", delta="+14% this month")
+        st.metric(label="Total Claims Checked", value=f"{total_claims:,}")
     with m2:
-        st.metric(label="Primary Source", value="Full Fact", delta="33% share")
+        st.metric(label="Primary Outlet Source", value=top_publisher)
     with m3:
-        st.metric(label="Avg Model Latency", value="1.84s",
-                  delta="-0.4s optimized", delta_color="inverse")
+        st.metric(label="Top Technique Used", value=top_technique)
     with m4:
-        st.metric(label="Vector Index Accuracy", value="97.3%", delta="+1.2%")
+        st.metric(label="Resurfaced Myths (>7d)",
+                  value=f"{resurfaced_count:,}")
 
     st.markdown("---")
 
-    st.markdown("### Verifications by Fact-Checking Publisher")
+    # --- ROW 1: CHARTS ---
+    col_chart1, col_chart2 = st.columns(2)
+
+    with col_chart1:
+        st.markdown("### Verifications by Fact-Checking Publisher")
+        st.markdown(
+            f"<p style='font-size: 13px; color: {theme.COLOUR_TEXT_MUTED}; margin-bottom: 16px;'>"
+            "Live volume of claims indexed across verified primary partners.</p>",
+            unsafe_allow_html=True
+        )
+        fig_publisher = vis.render_outlet_analytics_chart(df)
+        if fig_publisher:
+            st.plotly_chart(fig_publisher, use_container_width=True,
+                            config={'displayModeBar': False})
+
+    with col_chart2:
+        st.markdown("### Claim Ingestion & Recurrence Rate")
+        st.markdown(
+            f"<p style='font-size: 13px; color: {theme.COLOUR_TEXT_MUTED}; margin-bottom: 16px;'>"
+            "Comparing new claims against queries resurfacing long after publication.</p>",
+            unsafe_allow_html=True
+        )
+        fig_recurrence = vis.render_recurrence_timeline_chart(df)
+        if fig_recurrence:
+            st.plotly_chart(fig_recurrence, use_container_width=True,
+                            config={'displayModeBar': False})
+
+    st.markdown("---")
+
+    # --- ROW 2: LIVE RESURFACED CLAIMS TABLE ---
+    st.markdown("### 🔍 High-Recurrence Claim Monitor")
     st.markdown(
         f"<p style='font-size: 13px; color: {theme.COLOUR_TEXT_MUTED}; margin-bottom: 16px;'>"
-        "Real-time volume of claims indexed across verified primary partners.</p>",
+        "Claims from the database that are queried repeatedly over time.</p>",
         unsafe_allow_html=True
     )
 
-    fig = vis.render_outlet_analytics_chart()
-    st.plotly_chart(fig, use_container_width=True,
-                    config={'displayModeBar': False})
+    st.dataframe(
+        df[[
+            "claim", "verdict", "technique", "publisher", "publish_datetime", "access_datetime"
+        ]].rename(columns={
+            "claim": "Claim Text",
+            "verdict": "Verdict",
+            "technique": "Technique",
+            "publisher": "Publisher",
+            "publish_datetime": "Originally Published",
+            "access_datetime": "Last Queried"
+        }),
+        use_container_width=True,
+        hide_index=True
+    )
 
 
 def _render_export_buttons(result):
@@ -411,3 +448,26 @@ Sources Verified:
             mime="text/plain",
             use_container_width=True
         )
+
+
+def render_verification_logs_view():
+    """Filterable Data Table View for past checks."""
+
+    render_page_header(
+        "Verification History Logs",
+        "Search and review past newsroom claim checks."
+    )
+
+    with st.container(border=True):
+        c1, c2 = st.columns([3, 1])
+        with c1:
+            query = st.text_input("Filter by Keyword",
+                                  placeholder="Search claim keywords...")
+        with c2:
+            status = st.selectbox(
+                "Verdict Filter",
+                ["All", "Supported", "Contradicted", "Missing Context", "Unclear"]
+            )
+
+    df = fn.get_filtered_logs(query, status)
+    st.dataframe(df, use_container_width=True, hide_index=True)

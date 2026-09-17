@@ -3,9 +3,8 @@
 import os
 import streamlit as st
 from dotenv import load_dotenv
-import theme
-import components
-
+from components import ui, theme, visuals
+from utils import db
 # Load environment variables from .env file
 load_dotenv()
 
@@ -57,8 +56,8 @@ if not check_password():
     st.stop()
 
 
-components.render_sidebar_logo()
-components.render_system_status()
+ui.render_sidebar_logo()
+ui.render_system_status()
 
 view = st.sidebar.radio(
     "Navigation",
@@ -69,10 +68,10 @@ view = st.sidebar.radio(
 
 # Routing Logic
 if view == "Claim Verification":
-    components.render_claim_verification_view()
+    ui.render_claim_verification_view()
 elif view == "Top / New Stories":
-    components.render_breaking_stories_view()
+    ui.render_breaking_stories_view()
 elif view == "Verification Logs":
-    components.render_verification_logs_view()
+    ui.render_verification_logs_view()
 elif view == "Outlet Analytics":
-    components.render_outlet_credibility_view()
+    ui.render_outlet_credibility_view()

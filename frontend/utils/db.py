@@ -1,8 +1,84 @@
 """Data logic and backend handlers."""
 
-import pandas as pd
-from pathlib import Path
+import os
 import sys
+from pathlib import Path
+import pandas as pd
+import psycopg2
+from psycopg2.extras import RealDictCursor
+from dotenv import load_dotenv
+
+# Force loading .env file explicitly from the frontend folder
+env_path = Path(__file__).resolve().parent.parent / ".env"
+load_dotenv(dotenv_path=env_path)
+
+
+def get_db_connection():
+    """Establish connection to PostgreSQL RDS using environment variables."""
+    host = os.getenv("DB_HOST") or os.getenv("db_host")
+    port = os.getenv("DB_PORT") or os.getenv("db_port") or "5432"
+    dbname = os.getenv("DB_NAME") or os.getenv("db_name")
+    user = os.getenv("DB_USER") or os.getenv("db_user")
+    password = os.getenv("DB_PASSWORD") or os.getenv("db_password")
+
+    # Debug print statement (visible in terminal running Streamlit)
+    print(f"Connecting to DB: host={host}, dbname={dbname}, user={user}")
+
+    return psycopg2.connect(
+        host=host,
+        port=port,
+        dbname=dbname,
+        user=user,
+        password=password
+    )
+
+
+def fetch_analytics_data() -> pd.DataFrame:
+    """Fetch live claim analytics from RDS using RealDictCursor."""
+    query = """
+        SELECT 
+            c.claim_id,
+            c.claim,
+            c.claim_url,
+            c.publish_datetime,
+            c.access_datetime,
+            v.verdict,
+            t.technique,
+            o.outlet AS publisher,
+            s.source_url,
+            STRING_AGG(tg.tag, ', ') AS associated_tags
+        FROM claim c
+        LEFT JOIN verdict v ON c.verdict_id = v.verdict_id
+        LEFT JOIN technique t ON c.technique_id = t.technique_id
+        LEFT JOIN claim_source cs ON c.claim_id = cs.claim_id
+        LEFT JOIN source s ON cs.source_id = s.source_id
+        LEFT JOIN outlet o ON s.outlet_id = o.outlet_id
+        LEFT JOIN claim_tags ct ON c.claim_id = ct.claim_id
+        LEFT JOIN tags tg ON ct.tag_id = tg.tag_id
+        GROUP BY 
+            c.claim_id, 
+            c.claim, 
+            c.claim_url, 
+            c.publish_datetime, 
+            c.access_datetime, 
+            v.verdict, 
+            t.technique, 
+            o.outlet, 
+            s.source_url;
+    """
+    try:
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(query)
+            results = cur.fetchall()
+        conn.close()
+        return pd.DataFrame(results)
+
+    except Exception as e:
+        # Print exact error to terminal for quick debugging
+        print(f"❌ DATABASE ERROR: {e}")
+        return pd.DataFrame()
+
 
 # Add 'pipeline' directory to Python path for cross-folder imports
 PIPELINE_DIR = Path(__file__).resolve().parent.parent / "pipeline"

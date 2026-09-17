@@ -5,3 +5,4 @@ pylint
 plotly
 pathlib
 python-dotenv
+psycopg2-binary
