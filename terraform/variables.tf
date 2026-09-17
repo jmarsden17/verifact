@@ -73,3 +73,13 @@ variable "firecrawl_api_key" {
     type = string
     sensitive = true
 }
+
+variable "vpc_subnet_ids" {
+    description = "List of VPC subnet IDs for Lambda functions"
+    type = list(string)
+}
+
+variable "rds_sg_id" {
+    description = "Security group ID for Lambda functions"
+    type = string
+}
