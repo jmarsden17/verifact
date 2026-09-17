@@ -28,3 +28,15 @@ variable "dashboard_password" {
   description = "Password for Streamlit dashboard access"
   sensitive   = true
 }
+
+variable "db_user" {
+    description = "Database username"
+    type = string
+    sensitive = true
+}
+
+variable "db_password" {
+    description = "Database password"
+    type = string
+    sensitive = true
+}
