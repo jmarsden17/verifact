@@ -23,9 +23,10 @@ CREATE TABLE technique (
 
 CREATE TABLE claim (
     claim_id INT GENERATED ALWAYS AS IDENTITY,
-    claim TEXT NOT NULL UNIQUE,
+    claim TEXT NOT NULL,
     claim_url TEXT,
-    datetime TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    publish_datetime TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    access_datetime TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     verdict_id INT NOT NULL,
     technique_id INT NOT NULL,
     summary TEXT NOT NULL,
@@ -33,7 +34,9 @@ CREATE TABLE claim (
     PRIMARY KEY(claim_id),
     FOREIGN KEY(verdict_id) REFERENCES verdict(verdict_id),
     FOREIGN KEY(technique_id) REFERENCES technique(technique_id),
-    CONSTRAINT check_datetime CHECK(datetime <= CURRENT_TIMESTAMP)
+    CONSTRAINT check_publish_datetime CHECK(publish_datetime <= CURRENT_TIMESTAMP),
+    CONSTRAINT check_access_datetime CHECK (access_datetime <= CURRENT_TIMESTAMP),
+    UNIQUE (claim, publish_datetime, access_datetime)
 );
 
 
