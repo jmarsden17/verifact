@@ -30,8 +30,16 @@ def add_claims_to_database(conn: connection, data: list[tuple]) -> None:
     """Inserts claims to the database"""
     with conn.cursor() as cursor:
         query = """
-            INSERT INTO claim
-                (claim, claim_url, publish_datetime, access_datetime, verdict_id, technique_id, summary, claim_embedding)
+            INSERT INTO claim (
+                claim, 
+                claim_url, 
+                publish_datetime, 
+                access_datetime, 
+                verdict_id, 
+                technique_id, 
+                summary, 
+                claim_embedding
+            )
             VALUES %s
             ON CONFLICT (claim, publish_datetime, access_datetime)
             DO NOTHING;
