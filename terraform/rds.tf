@@ -20,7 +20,7 @@ resource "aws_db_instance" "c25-disinformation-rds" {
     username = var.db_user
     password = var.db_password
     allocated_storage = 10
-    db_subnet_group_name = aws_db_subnet_group.public-subnets.name # ?????????????????????????????????
+    db_subnet_group_name = data.aws_db_subnet_group.public-subnets.name
     vpc_security_group_ids = [aws_security_group.c25-disinformation-rds-security-group.id]
     publicly_accessible = true
     skip_final_snapshot = true
