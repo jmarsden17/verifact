@@ -26,7 +26,55 @@ def get_db_connection() -> connection:
         return None
 
 
-def add_claims_to_database(conn: connection, data: list[tuple]) -> None:
+def get_tag_mapping(conn: connection) -> dict:
+    """Returns a dictionary mapping all the tags and their ID"""
+    with conn.cursor() as cursor:
+        query = """
+            SELECT tag, tag_id
+            FROM tags;
+        """
+        cursor.execute(query)
+        rows = cursor.fetchall()
+    return {row["tag"]: row["tag_id"] for row in rows}
+
+
+def get_verdict_mapping(conn: connection) -> dict:
+    """Returns a dictionary mapping all the verdict and their ID"""
+    with conn.cursor() as cursor:
+        query = """
+            SELECT verdict, verdict_id
+            FROM verdict;
+        """
+        cursor.execute(query)
+        rows = cursor.fetchall()
+    return {row["verdict"]: row["verdict_id"] for row in rows}
+
+
+def get_technique_mapping(conn: connection) -> dict:
+    """Returns a dictionary mapping all the technique and their ID"""
+    with conn.cursor() as cursor:
+        query = """
+            SELECT technique, technique_id
+            FROM technique;
+        """
+        cursor.execute(query)
+        rows = cursor.fetchall()
+    return {row["technique"]: row["technique_id"] for row in rows}
+
+
+def get_outlet_mapping(conn: connection) -> dict:
+    """Returns a dictionary mapping all the outlet and their ID"""
+    with conn.cursor() as cursor:
+        query = """
+            SELECT outlet, outlet_id
+            FROM outlet;
+        """
+        cursor.execute(query)
+        rows = cursor.fetchall()
+    return {row["outlet"]: row["outlet_id"] for row in rows}
+
+
+def add_claims_to_database(conn: connection, data: list[tuple]) -> list[tuple]:
     """Inserts claims to the database"""
     with conn.cursor() as cursor:
         query = """
@@ -42,11 +90,14 @@ def add_claims_to_database(conn: connection, data: list[tuple]) -> None:
             )
             VALUES %s
             ON CONFLICT (claim, publish_datetime, access_datetime)
-            DO NOTHING;
+            DO NOTHING
+            RETURNING claim_id;
         """
 
-        execute_values(cursor, query, data)
+        rows = execute_values(cursor, query, data, fetchall=True)
+        claim_ids = [row[0] for row in rows]
         conn.commit()
+    return rows
 
 
 def add_claim_tags_to_database(conn: connection, data: list[tuple]) -> None:
@@ -64,7 +115,7 @@ def add_claim_tags_to_database(conn: connection, data: list[tuple]) -> None:
         conn.commit()
 
 
-def add_source_to_database(conn: connection, data: list[tuple]) -> None:
+def add_source_to_database(conn: connection, data: list[tuple]) -> list[int]:
     """Inserts source to the database"""
     with conn.cursor() as cursor:
         query = """
