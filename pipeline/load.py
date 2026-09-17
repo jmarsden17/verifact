@@ -74,7 +74,7 @@ def get_outlet_mapping(conn: connection) -> dict:
     return {row["outlet"]: row["outlet_id"] for row in rows}
 
 
-def add_claims_to_database(conn: connection, data: list[tuple]) -> list[tuple]:
+def add_claims_to_database(conn: connection, data: list[tuple]) -> list[int]:
     """Inserts claims to the database"""
     with conn.cursor() as cursor:
         query = """
@@ -97,7 +97,7 @@ def add_claims_to_database(conn: connection, data: list[tuple]) -> list[tuple]:
         rows = execute_values(cursor, query, data, fetchall=True)
         claim_ids = [row[0] for row in rows]
         conn.commit()
-    return rows
+    return claim_ids
 
 
 def add_claim_tags_to_database(conn: connection, data: list[tuple]) -> None:
@@ -121,11 +121,14 @@ def add_source_to_database(conn: connection, data: list[tuple]) -> list[int]:
         query = """
             INSERT INTO source
                 (source_url, source_verification, outlet_id)
-            VALUES %s;
+            VALUES %s
+            RETURNING source_id;;
         """
 
-        execute_values(cursor, query, data)
+        rows = execute_values(cursor, query, data, fetchall=True)
+        source_ids = [row[0] for row in rows]
         conn.commit()
+    return source_ids
 
 
 def add_claim_source_to_database(conn: connection, data: list[tuple]) -> None:
@@ -143,6 +146,40 @@ def add_claim_source_to_database(conn: connection, data: list[tuple]) -> None:
         conn.commit()
 
 
+def format_claim_insert(claims: dict) -> list[tuple]:
+    """Returns a formatted list of tuples for insertion"""
+    pass
+
+
+def format_sources_insert(sources: list[dict]) -> list[tuple]:
+    """Returns a formatted list of tuples for insertion"""
+    pass
+
+
+def extract_tags(claims: list[dict], tags: dict) -> list[list[int]]:
+    """Returns an ordered list of the tag's ID"""
+    list_tags = []
+    for claim in claims:
+        list_tags.append(claim["tags"])
+    return list_tags
+
+
+def format_claim_tags_insert(claim_ids: list[int], tags: list[list[int]]) -> list[tuple]:
+    """Returns a formatted list of tuples for insertion"""
+    formatted_insert = []
+    for index in range(len(claim_ids)):
+        for tag in tags[index]:
+            formatted_insert.append((claim_ids[index], tag))
+    return formatted_insert
+
+
+def format_claim_source_insert(claim_ids: list[int], source: list[int], count: list[int]) -> list[tuple]:
+    """Returns a formatted list of tuples for insertion"""
+    formatted_insert = []
+    # TODO
+    return formatted_insert
+
+
 if __name__ == "__main__":
 
     # Set up:
@@ -154,5 +191,7 @@ if __name__ == "__main__":
     if conn is None:
         raise SystemExit(1)
     logging.info("Successfully connected to the database")
+
+    # TODO: Group by the claims
 
     conn.close()
