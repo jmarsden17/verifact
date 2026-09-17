@@ -1,52 +1,43 @@
 """
 The load aspect of the ETL pipeline.
-Uploads data into the DynamoDB table
+Uploads data into the RDS table
 """
-import os
+from os import environ
 import logging
 from dotenv import load_dotenv
-import boto3
+from psycopg2 import connect, OperationalError
+from psycopg2.extras import RealDictCursor, execute_values
+from psycopg2.extensions import connection
 
 
-def connect_to_dynamodb():
-    """Connects to the DynamoDB database"""
-    dynamodb = boto3.resource(
-        'dynamodb',
-        aws_access_key_id=os.environ["ACCESS_KEY_ID"],
-        aws_secret_access_key=os.environ["SECRET_ACCESS_KEY"]
-    )
-    logging.info("Successfully connected to DynamoDB")
-    return dynamodb.Table('c25-disinformation-dynamo')
-
-
-def dynamodb_put_item(dynamodb, item: dict):
-    """Puts an item into the DynamoDB table"""
-    dynamodb.put_item(
-        TableName='c25-disinformation-dynamo',
-        Item={
-            "claim": str(item['claim']),
-            "claim_link": str(item['claim_link']),
-            "tags": ', '.join(item['tags']),
-            "entities": item['entities'],
-            "timestamp": item['timestamp'].isoformat(),
-            "verification": str(item['verification']),
-            "confidence": str(item['confidence']),
-            "summary": str(item['summary']),
-            "all_verifications": item['all_verifications']
-        }
-    )
-    logging.info("Loaded into DynamoDB")
+def get_db_connection() -> connection:
+    """Returns a live connection from the database."""
+    try:
+        return connect(
+            cursor_factory=RealDictCursor,
+            dbname=environ["DATABASE_NAME"],
+            host=environ["DATABASE_IP"],
+            password=environ["DATABASE_PASSWORD"],
+            user=environ["DATABASE_USERNAME"],
+            port=environ["DATABASE_PORT"]
+        )
+    except OperationalError as e:
+        logging.error(e)
+        return None
 
 
 if __name__ == "__main__":
 
-    # Set up file:
+    # Set up:
     logging.basicConfig(level=logging.INFO)
     load_dotenv()
 
-    # Establish connection to DynamoDB:
-    dynamodb = connect_to_dynamodb()
+    conn = get_db_connection()
 
-    # TODO: The claim should be extracted from transform.py
-    # Put item into DynamoDB:
-    dynamodb_put_item(dynamodb, claim)
+    if conn is None:
+        raise SystemExit(1)
+    logging.info("Successfully connected to the database")
+
+    # TODO: Complete after transformation
+
+    conn.close()
