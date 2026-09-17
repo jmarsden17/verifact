@@ -8,7 +8,7 @@ from db_connection import find_most_similar_claim
 
 
 def handler(event, context):
-    """Handler to extract claims from user-provided text."""
+    """Handler to extract claims from user-provided text and find similar claims in the database."""
     load_dotenv()
     input_text = event.get("user_text", "")
     analysis = get_claims_from_user(input_text)
