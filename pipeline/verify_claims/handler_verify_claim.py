@@ -54,6 +54,7 @@ def handler(event, context):
                 "claim": claim,
                 "verdict": "Unclear / Not enough evidence",
                 "reasoning": f"Error processing claim: {e}",
+                "misinformation_type": "None",
                 "entities": [],
                 "tags": [],
                 "sources": [],
