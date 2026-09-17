@@ -75,7 +75,7 @@ def get_outlet_mapping(conn: connection) -> dict:
     return {row["outlet"]: row["outlet_id"] for row in rows}
 
 
-def add_claims_to_database(conn: connection, data: list[tuple]) -> list[int]:
+def add_claims_to_database(conn: connection, data: list[tuple]) -> dict:
     """Inserts claims to the database"""
     with conn.cursor() as cursor:
         query = """
@@ -92,13 +92,12 @@ def add_claims_to_database(conn: connection, data: list[tuple]) -> list[int]:
             VALUES %s
             ON CONFLICT (claim, publish_datetime, access_datetime)
             DO NOTHING
-            RETURNING claim_id;
+            RETURNING claim, claim_id;
         """
 
         rows = execute_values(cursor, query, data, fetchall=True)
-        claim_ids = [row[0] for row in rows]
         conn.commit()
-    return claim_ids
+    return dict(rows)
 
 
 def add_claim_tags_to_database(conn: connection, data: list[tuple]) -> None:
@@ -123,13 +122,12 @@ def add_source_to_database(conn: connection, data: list[tuple]) -> list[int]:
             INSERT INTO source
                 (source_url, source_verification, outlet_id)
             VALUES %s
-            RETURNING source_id;;
+            RETURNING source, source_id;;
         """
 
         rows = execute_values(cursor, query, data, fetchall=True)
-        source_ids = [row[0] for row in rows]
         conn.commit()
-    return source_ids
+    return dict(rows)
 
 
 def add_claim_source_to_database(conn: connection, data: list[tuple]) -> None:
@@ -161,9 +159,19 @@ def format_claim_insert(claims: dict, verdicts: dict, techniques: dict) -> list[
     return formatted_tuple
 
 
+def format_claim_tags_insert(claim_tags: list[dict]) -> list[tuple]:
+    """Returns a formatted list of tuples for insertion"""
+    formatted_insert = []
+    for item in claim_tags:
+        for id in item['tags_id']:
+            formatted_insert.append((
+                item['claims'], id
+            ))
+    return formatted_insert
+
+
 def format_sources_insert(sources: list[dict], outlets) -> list[tuple]:
     """Returns a formatted list of tuples for insertion"""
-    sources = data[['sources', 'source_name']]
     formatted_sources = []
     for source in sources:
         formatted_sources.append((
@@ -173,27 +181,14 @@ def format_sources_insert(sources: list[dict], outlets) -> list[tuple]:
         ))
 
 
-def extract_tags(claims: list[dict], tags: dict) -> list[list[int]]:
-    """Returns an ordered list of the tag's ID"""
-    list_tags = []
-    for claim in claims:
-        list_tags.append(tags[claim["tags"]])
-    return list_tags
-
-
-def format_claim_tags_insert(claim_ids: list[int], tags: list[list[int]]) -> list[tuple]:
+def format_claim_source_insert(claim_sources: dict) -> list[tuple]:
     """Returns a formatted list of tuples for insertion"""
     formatted_insert = []
-    for index in range(len(claim_ids)):
-        for tag in tags[index]:
-            formatted_insert.append((claim_ids[index], tag))
-    return formatted_insert
-
-
-def format_claim_source_insert(claim_ids: list[int], source_id: list[int], count: list[int]) -> list[tuple]:
-    """Returns a formatted list of tuples for insertion"""
-    formatted_insert = []
-    # TODO
+    for item in claim_sources:
+        formatted_insert.append((
+            item['claim_id'],
+            item['source_id']
+        ))
     return formatted_insert
 
 
@@ -217,8 +212,7 @@ if __name__ == "__main__":
     logging.info("Successfully extracted all the relevant mappings")
 
     # TODO: Get data from transform:
-    # Retrieve transformed data:
-    data = pd.Dataframe()
+    data = pd.DataFrame()
     logging.info("Received data from transform")
 
     # Insert into claim table:
@@ -226,23 +220,29 @@ if __name__ == "__main__":
                    'misinformation_type', 'reasoning']].drop_duplicates()
     claims = claims.to_dict(orient='records')
     formatted_claims = format_claim_insert(claims)
-    claims_id = add_claims_to_database(claims)
+    claim_map = add_claims_to_database(claims)
     logging.info("Successfully added claims to database")
 
-    # TODO:
-    # Insert into claim_tags table:
-    claim_tag_group = data['']
+    data['claim_id'] = data['claim'].map(claim_map)
+
+    # TODO: Insert into tags table
+    claim_tags = data[['claim_id', 'tags']].drop_duplicates()
+    claim_tags["tags_id"] = claim_tags["tags"].apply(
+        lambda tags: [tag_map[tag] for tag in tags]
+    )
+    claim_tags_dict = claim_tags.to_dict(orient='records')
+    formatted_claim_tags = format_claim_tags_insert(claim_tags_dict)
+    add_claim_tags_to_database(formatted_claim_tags)
 
     # TODO: Missing source verification
     # Insert into source table:
     sources = data[['sources', 'source_name']]
     formatted_sources = format_sources_insert(sources, outlet_map)
-    source_ids = add_source_to_database(formatted_sources)
+    source_map = add_source_to_database(formatted_sources)
+
+    data['source_id'] = data['sources'].map(source_map)
 
     # Insert into claim_source table:
-    count_sources = data["claim"].value_counts(sort=False).to_list()
-    formatted_count_source = format_claim_source_insert(
-        claims_id, source_ids, count_sources)
-    add_claim_source_to_database(conn, formatted_sources)
-
-    conn.close()
+    claim_source = data[['claim_id', 'source_id']].to_dict(orient='records')
+    formatted_claim_source = format_claim_source_insert(claim_source)
+    add_claim_source_to_database(formatted_claim_source)
