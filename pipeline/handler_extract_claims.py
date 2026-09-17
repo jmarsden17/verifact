@@ -16,11 +16,13 @@ def handler(event, context):
     for claim in analysis["claims"]:
         if claim["verification_method"] == "external_search":
             claim["embedding"] = generate_embeddings(claim["text"])
-            similar_claim, similarity, verdict = find_most_similar_claim(
+            similar_claim, similarity, verdict, summary, technique = find_most_similar_claim(
                 claim["embedding"])
             claim["similar_claim"] = similar_claim
             claim["similarity"] = similarity
             claim["verdict"] = verdict
+            claim["summary"] = summary
+            claim["technique"] = technique
             claims.append(claim)
 
     for claim in claims:
