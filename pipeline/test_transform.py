@@ -12,7 +12,7 @@ from transform import (
     transform,
 )
 
-VERDICTS = ["supported", "contradicted", "missing context", "unclear"]
+VERDICTS = ["supported", "contradicted", "mixed / missing context", "unclear / not enough evidence"]
 TECHNIQUES = ["Deepfake", "Misleading Context", "None"]
 TOPICS = ["Europe", "Media Journalism", "Technology"]
 
@@ -226,7 +226,6 @@ def test_transform_handles_invalid_misinformation_type():
 
 def test_transform_handles_skip_etl_shaped_record_without_crashing():
     """A skip_etl record doesn't crash transform(), though missing columns fall back to empty/'unknown'."""
-
     records = [
         {
             "claim": "The Eiffel Tower was built in 1889.",

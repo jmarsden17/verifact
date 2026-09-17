@@ -3,7 +3,7 @@
 import pandas as pd
 from models import TOPIC_TAGS, TECHNIQUE_TAGS
 
-VERDICTS = ["supported", "contradicted", "missing context", "unclear"]
+VERDICTS = ["supported", "contradicted", "mixed / missing context", "unclear / not enough evidence"]
 
 
 def clean_list_value(value):
