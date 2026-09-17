@@ -1,8 +1,8 @@
 """Firecrawl client for extracting articles from specific sites."""
 
 import os
-from firecrawl import Firecrawl
 from urllib.parse import urlparse
+from firecrawl import Firecrawl
 
 
 def extract(claim: str, site: str):

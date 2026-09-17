@@ -1,7 +1,7 @@
 """Models that configure LLM output for claim extraction and analysis."""
 
-from pydantic import BaseModel, Field
 from typing import Literal
+from pydantic import BaseModel, Field
 
 TOPIC_TAGS = [
     "Politics UK", "Politics USA", "Politics International", "Elections US", "Elections UK", "Elections International", "War/Conflict",
