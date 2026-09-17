@@ -21,6 +21,6 @@ data "aws_vpc" "vpc" {
   id = data.aws_db_subnet_group.public-subnets.vpc_id
 }
 
-data   "aws_db_subnet_group" "public-subnets" {
+data "aws_db_subnet_group" "public-subnets" {
     name = "c25-public-subnet"
 }
