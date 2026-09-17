@@ -1,0 +1,7 @@
+streamlit
+pandas
+pytest
+pylint
+plotly
+pathlib
+python-dotenv

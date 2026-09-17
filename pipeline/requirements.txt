@@ -1,0 +1,12 @@
+pylint
+pytest
+pytest-mock
+pytest-cov
+pydantic
+python-dotenv
+firecrawl-py
+openai
+newspaper3k
+lxml[html-clean]
+pandas
+boto3
