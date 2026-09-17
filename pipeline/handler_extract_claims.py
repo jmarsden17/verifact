@@ -2,6 +2,7 @@
 
 from dotenv import load_dotenv
 from llm_client import get_claims_from_user
+from embeddings import generate_embeddings
 
 
 def handler(event, context):
@@ -12,6 +13,7 @@ def handler(event, context):
     claims = []
     for claim in analysis["claims"]:
         if claim["verification_method"] == "external_search":
+            claim["embedding"] = generate_embeddings(claim["text"])
             claims.append(claim)
 
     return {
