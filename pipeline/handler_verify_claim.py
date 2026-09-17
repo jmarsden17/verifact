@@ -16,6 +16,16 @@ def handler(event, context):
     results = []
 
     for claim_item in claims_data:
+        if claim_item['skip_etl'] is True:
+            verdict = {
+                "claim": claim_item.get("text"),
+                "similar_claim": claim_item.get("similar_claim"),
+                "similarity": claim_item.get("similarity"),
+                "verdict": claim_item.get("verdict")
+            }
+            results.append(verdict)
+            continue
+
         claim = claim_item.get("text")
         extracted_article = extract(claim, site)
         verdict = compare_claims_with_article(claim, extracted_article)

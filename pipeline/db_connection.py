@@ -7,6 +7,7 @@ from psycopg2.extras import register_vector
 
 
 def get_connection():
+    """Establish a connection to the PostgreSQL database and register the vector type."""
     load_dotenv()
     conn = psycopg2.connect(
         host=os.environ['DB_HOST'],
@@ -25,7 +26,7 @@ def find_most_similar_claim(query_embedding):
     with conn.cursor() as cur:
         cur.execute(
             """
-            SELECT id, claim_text, 1 - (embedding <=> %s) AS similarity
+            SELECT claim_id, claim_text, 1 - (embedding <=> %s) AS similarity, verdict 
             FROM claims
             ORDER BY embedding <=> %s
             WHERE 1 - (embedding <=> %s) >= 0.8 
@@ -36,4 +37,5 @@ def find_most_similar_claim(query_embedding):
         embedding = cur.fetchall()
     claim = embedding[0]['claim_text'] if embedding else None
     similarity = embedding[0]['similarity'] if embedding else None
-    return claim, similarity
+    verdict = embedding[0]['verdict'] if embedding else None
+    return claim, similarity, verdict
