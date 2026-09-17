@@ -225,7 +225,7 @@ if __name__ == "__main__":
 
     data['claim_id'] = data['claim'].map(claim_map)
 
-    # TODO: Insert into tags table
+    # Insert into tags table
     claim_tags = data[['claim_id', 'tags']].drop_duplicates()
     claim_tags["tags_id"] = claim_tags["tags"].apply(
         lambda tags: [tag_map[tag] for tag in tags]
@@ -233,12 +233,14 @@ if __name__ == "__main__":
     claim_tags_dict = claim_tags.to_dict(orient='records')
     formatted_claim_tags = format_claim_tags_insert(claim_tags_dict)
     add_claim_tags_to_database(formatted_claim_tags)
+    logging.info("Successfully added claim_tags to database")
 
     # TODO: Missing source verification
     # Insert into source table:
     sources = data[['sources', 'source_name']]
     formatted_sources = format_sources_insert(sources, outlet_map)
     source_map = add_source_to_database(formatted_sources)
+    logging.info("Successfully added source to database")
 
     data['source_id'] = data['sources'].map(source_map)
 
@@ -246,3 +248,4 @@ if __name__ == "__main__":
     claim_source = data[['claim_id', 'source_id']].to_dict(orient='records')
     formatted_claim_source = format_claim_source_insert(claim_source)
     add_claim_source_to_database(formatted_claim_source)
+    logging.info("Successfully added claim_source to database")
