@@ -54,8 +54,8 @@ resource "aws_lambda_function" "extract_lambda" {
     timeout = 120
     
       vpc_config {
-        subnet_ids         = data.aws_db_subnet_group.public-subnets.name
-        security_group_ids = [aws_security_group.lambda_sg.id]
+        subnet_ids         = var.vpc_subnet_ids
+        security_group_ids = [var.rds_sg_id]
       }
     
 
