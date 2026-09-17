@@ -3,7 +3,7 @@
 import os
 from openai import OpenAI
 from dotenv import load_dotenv
-from llm_client import get_claims_from_user
+from extract_llm import get_claims_from_user
 from db_connection import find_most_similar_claim
 
 
@@ -16,8 +16,10 @@ def handler(event, context):
     for claim in analysis["claims"]:
         if claim["verification_method"] == "external_search":
             claim["embedding"] = generate_embeddings(claim["text"])
+
             similar_claim, similarity, verdict, summary, technique = find_most_similar_claim(
                 claim["embedding"])
+
             claim["similar_claim"] = similar_claim
             claim["similarity"] = similarity
             claim["verdict"] = verdict
@@ -37,12 +39,12 @@ def handler(event, context):
     }
 
 
-def generate_embeddings(claim: str) -> list[int]:
+def generate_embeddings(claim: str) -> list[float]:
     """Generate embedding vector for a given claim using OpenAI's API."""
     load_dotenv()
-    api_key = os.environ["OPENAI_API_KEY"]
 
-    client = OpenAI(api_key=api_key)
+    client = OpenAI(api_key=os.environ["OPENAI_API_KEY"],
+                    base_url=os.environ["OPENAI_BASE_URL"])
 
     response = client.embeddings.create(
         input=claim,

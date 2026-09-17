@@ -24,53 +24,11 @@ TECHNIQUE_TAGS = [
 TechniqueTag = Literal[tuple(TECHNIQUE_TAGS)]
 
 
-class Claim(BaseModel):
-    """A single claim extracted from user-provided text."""
-    text: str = Field(
-        description="The claim stated in a single, self-contained, checkable sentence")
-    claim_type: Literal["event", "statistic", "promise", "opinion", "other"] = Field(
-        description=(
-            "event: something that happened (a speech, a vote, an action). "
-            "statistic: a specific number, set of numbers, or measurable fact - a fact or figure that should be externally verifiable. "
-            "promise: a future commitment that cannot yet be true or false. "
-            "opinion: a subjective statement reflecting personal beliefs or views that cannot be objectively verified. Eg. 'I think this policy is unfair.' , 'X is an idiot.'"
-            "other: vague narrative/editorial framing with no specific verifiable content."
-        ))
-    verification_method: Literal["external_search", "context_only", "not_verifiable"] = Field(
-        description=(
-            "external_search: requires checking outside sources."
-            "context_only: contextual information that is given in the article itself and can be verified without external sources, and would not need to be fact checked. e.g. 'x gave a speech on Sunday.', 'x raised concerns'"
-            "not_verifiable: opinion, future promise, or too vague to check — skip entirely."
-        )
-
-    )
-    entities: list[str] = Field(
-        description="People, organizations, or places named in the claim")
-
-    tags: list[TopicTag] = Field(  # type: ignore[valid-type]
-        description=f"Topic tags for the claim. Choose up to 2 from the allowed list only: {TOPIC_TAGS}",
-        min_length=1,
-        max_length=2
-    )
-
-
-class InputAnalysis(BaseModel):
-    """Analysis of the input text, including extracted claims, topic tags, and a summary."""
-    claims: list[Claim]
-    tags: list[TopicTag] = Field(  # type: ignore[valid-type]
-        description=f"Topic tags for the article. Choose from the allowed list only: {TOPIC_TAGS}",
-        min_length=1,
-        max_length=2
-    )
-    summary: str = Field(
-        description="One-sentence summary of what the article is about")
-
-
 class VerdictResult(BaseModel):
     """Result of verifying a single claim against an article."""
     claim: str
     verdict: Literal["Supported", "Contradicted",
-                     "Missing Context", "Unclear"]
+                     "Mixed / Missing Context", "Unclear / Not enough evidence"]
     reasoning: str
     misinformation_type: TechniqueTag = Field(  # type: ignore[valid-type]
         description=f"Technique tag for the misinformation. If the claim is supported by the article and is not\
