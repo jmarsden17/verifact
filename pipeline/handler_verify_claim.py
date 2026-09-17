@@ -21,7 +21,9 @@ def handler(event, context):
                 "claim": claim_item.get("text"),
                 "similar_claim": claim_item.get("similar_claim"),
                 "similarity": claim_item.get("similarity"),
-                "verdict": claim_item.get("verdict")
+                "verdict": claim_item.get("verdict"),
+                "summary": claim_item.get("summary"),
+                "technique": claim_item.get("technique"),
             }
             results.append(verdict)
             continue

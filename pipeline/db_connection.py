@@ -26,8 +26,11 @@ def find_most_similar_claim(query_embedding):
     with conn.cursor() as cur:
         cur.execute(
             """
-            SELECT claim_id, claim_text, 1 - (embedding <=> %s) AS similarity, verdict 
+            SELECT claim_id, claim, 1 - (embedding <=> %s) AS similarity, verdict.verdict, summary, technique.technique
             FROM claims
+            LEFT JOIN verdict USING (verdict_id)
+            LEFT JOIN technique USING (technique_id)
+
             ORDER BY embedding <=> %s
             WHERE 1 - (embedding <=> %s) >= 0.8 
             LIMIT 1
@@ -35,7 +38,9 @@ def find_most_similar_claim(query_embedding):
             (query_embedding, query_embedding, query_embedding)
         )
         embedding = cur.fetchall()
-    claim = embedding[0]['claim_text'] if embedding else None
+    claim = embedding[0]['claim'] if embedding else None
     similarity = embedding[0]['similarity'] if embedding else None
     verdict = embedding[0]['verdict'] if embedding else None
-    return claim, similarity, verdict
+    summary = embedding[0]['summary'] if embedding else None
+    technique = embedding[0]['technique'] if embedding else None
+    return claim, similarity, verdict, summary, technique
