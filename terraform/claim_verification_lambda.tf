@@ -46,4 +46,12 @@ resource "aws_lambda_function" "claim_verification_lambda" {
 
     memory_size = 512
     timeout = 120
+
+    environment {
+        variables = {
+            OPENAI_API_KEY = var.openai_api_key
+            OPENAI_BASE_URL = var.openai_base_url
+            FIRECRAWL_API_KEY = var.firecrawl_api_key
+        }
+    }
 }

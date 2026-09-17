@@ -40,3 +40,36 @@ variable "db_password" {
     type = string
     sensitive = true
 }
+
+variable "db_host" {
+    description = "Database host"
+    type = string
+}
+
+variable "db_name" {
+    description = "Database name"
+    type = string
+}
+
+variable "db_port" {
+    description = "Database port"
+    type = number
+    default = 5432
+}
+
+variable "openai_api_key" {
+    description = "OpenAI API key"
+    type = string
+    sensitive = true
+}
+
+variable "openai_base_url" {
+    description = "OpenAI base URL"
+    type = string
+}
+
+variable "firecrawl_api_key" {
+    description = "Firecrawl API key"
+    type = string
+    sensitive = true
+}
