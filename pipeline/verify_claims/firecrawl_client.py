@@ -12,7 +12,7 @@ def extract(claim: str, site: str):
     results = firecrawl.search(
         query=f'"{claim}" site:{domain}',
         limit=1, scrape_options={"formats": ["markdown", "links"]},
-        timeout=30
+        timeout=30000
     )
     output = []
     urls = []
