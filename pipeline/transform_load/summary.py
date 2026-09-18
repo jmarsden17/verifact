@@ -5,7 +5,6 @@ import os
 from openai import OpenAI
 from dotenv import load_dotenv
 from summary_models import SummaryResult
-from handler_collate_results import aggregate_verdicts
 
 
 def generate_summary(grouped_claims: list[dict]) -> SummaryResult:

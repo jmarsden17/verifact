@@ -10,6 +10,9 @@ from psycopg2.extras import RealDictCursor, execute_values
 from psycopg2.extensions import connection
 import pandas as pd
 
+from transform import transform
+from handler_collate_results import combine_main
+
 
 def get_db_connection() -> connection:
     """Returns a live connection from the database."""
@@ -85,7 +88,8 @@ def add_claims_to_database(conn: connection, data: list[tuple]) -> dict:
                 verdict_id, 
                 technique_id, 
                 summary, 
-                claim_embedding
+                claim_embedding,
+                confidence_score
             )
             VALUES %s
             ON CONFLICT (claim, publish_datetime, access_datetime)
@@ -157,7 +161,8 @@ def format_claim_insert(claims: dict, verdicts: dict, techniques: dict) -> list[
             verdicts[claim['verdict']],
             techniques[claim['technique']],
             claim['summary'],
-            claim['claim_embedding']
+            claim['claim_embedding'],
+            claim['confidence_score']
         ))
     return formatted_tuple
 
@@ -205,7 +210,7 @@ def main_claim_insertion_function(conn: connection, data: pd.DataFrame) -> dict:
     logging.info("Successfully retrieved technique mapping")
 
     claims = data[['claim', 'verdict', 'technique', 'summary',
-                   'claim_url', "claim_embedding"]].drop_duplicates(subset='claim')
+                   'claim_url', 'claim_embedding', 'confidence_score']].drop_duplicates(subset='claim')
     claims = claims.to_dict(orient='records')
 
     formatted_claims = format_claim_insert(claims, verdict_map, technique_map)
@@ -259,9 +264,21 @@ def handler(event=None, context=None) -> dict:
         raise SystemExit(1)
     logging.info("Successfully connected to the database")
 
-    # TODO: Get data from transform:
-    data = pd.DataFrame()
-    logging.info("Received data from transform")
+    # TODO: Get data from extract:
+    combined = combine_main(event['body'])
+    verdict_list = []
+    for key in combined:
+        verdicts = combined[key]['verdicts']
+        for verdict in verdicts:
+            verdict['claim'] = key
+            verdict['summary'] = combined[key]['summary']['summary']
+            verdict['confidence_score'] = combined[key]['summary']['confidence_score']
+        verdict_list.append(verdicts)
+        verdict_list.append(combined[key]['summary'])
+    logging.info("Received data to transform")
+
+    data = transform(verdict_list)
+    logging.info("Transformed data")
 
     # Insert into claim table:
     claim_map = main_claim_insertion_function(conn, data)
@@ -283,9 +300,116 @@ def handler(event=None, context=None) -> dict:
     main_claim_source_insertion_function(conn, data)
     logging.info("Successfully added claim_source to database")
 
-    return data.to_dict(orient='records')
+    return {
+        "statusCode": 200,
+        "body": data.to_dict(orient='records')
+    }
 
 
 if __name__ == "__main__":
 
-    handler()
+    parallel_output = [
+        # Branch 1: Reuters
+        {
+            "statusCode": 200,
+            "body": [
+                {
+                    "claim": "The unemployment rate fell to 3.8% in August, the lowest in six months.",
+                    "verdict": "Supported",
+                    "reasoning": "Reuters' labour market report confirms the 3.8% figure, matching the official BLS release for August.",
+                    "misinformation_type": "None",
+                    "entities": ["Bureau of Labor Statistics"],
+                    "tags": ["Economy Finance"],
+                    "sources": ["reuters.com/markets/us-unemployment-august-2026"],
+                    "source_name": "reuters",
+                    "claim_embedding": [0.12, -0.45, 0.89],
+                    "claim_url": "www.xxx.com",
+                    "confidence_score": 0.8
+                },
+                {
+                    "claim": "The new trade agreement will eliminate all tariffs between the two countries by 2027.",
+                    "verdict": "Mixed / Missing Context",
+                    "reasoning": "The agreement phases out most tariffs by 2027 but explicitly excludes steel and agricultural products, which the claim omits.",
+                    "misinformation_type": "Misleading Context",
+                    "entities": ["Ministry of Trade"],
+                    "tags": ["Trade Tariffs"],
+                    "sources": ["reuters.com/business/trade-deal-tariffs-2026"],
+                    "source_name": "reuters",
+                    "claim_embedding": [0.12, -0.45, 0.89],
+                    "claim_url": "www.xxx.com",
+                    "confidence_score": 0.8
+                },
+            ],
+        },
+        # Branch 2: AP
+        {
+            "statusCode": 200,
+            "body": [
+                {
+                    "claim": "The unemployment rate fell to 3.8% in August, the lowest in six months.",
+                    "verdict": "Supported",
+                    "reasoning": "AP's coverage of the jobs report independently corroborates the 3.8% figure and the six-month low framing.",
+                    "misinformation_type": "None",
+                    "entities": ["Bureau of Labor Statistics"],
+                    "tags": ["Economy Finance"],
+                    "sources": ["apnews.com/article/jobs-report-august-2026"],
+                    "source_name": "ap",
+                    "claim_embedding": [0.12, -0.45, 0.89],
+                    "claim_url": "www.xxx.com",
+                    "confidence_score": 0.8
+                },
+                {
+                    "claim": "The new trade agreement will eliminate all tariffs between the two countries by 2027.",
+                    "verdict": "Contradicted",
+                    "reasoning": "AP reports the deal retains a 12% tariff on steel imports indefinitely, directly contradicting the 'all tariffs' claim.",
+                    "misinformation_type": "Statistical Distortion",
+                    "entities": ["Ministry of Trade"],
+                    "tags": ["Trade Tariffs"],
+                    "sources": ["apnews.com/article/trade-deal-steel-tariffs"],
+                    "source_name": "ap",
+                    "claim_embedding": [0.12, -0.45, 0.89],
+                    "claim_url": "www.xxx.com",
+                    "confidence_score": 0.8
+                },
+            ],
+        },
+        # Branch 3: BBC
+        {
+            "statusCode": 200,
+            "body": [
+                {
+                    "claim": "The unemployment rate fell to 3.8% in August, the lowest in six months.",
+                    "verdict": "Unclear / Not enough evidence",
+                    "reasoning": "No matching article found on this source.",
+                    "misinformation_type": "None",
+                    "entities": [],
+                    "tags": [],
+                    "sources": [],
+                    "source_name": "bbc",
+                    "claim_embedding": [0.12, -0.45, 0.89],
+                    "claim_url": "www.xxx.com",
+                    "confidence_score": 0.8
+                },
+                {
+                    "claim": "The new trade agreement will eliminate all tariffs between the two countries by 2027.",
+                    "verdict": "Contradicted",
+                    "reasoning": "BBC's analysis piece states agricultural tariffs remain untouched under the deal, contradicting the blanket elimination claim.",
+                    "misinformation_type": "Misleading Context",
+                    "entities": ["Ministry of Trade"],
+                    "tags": ["Trade Tariffs"],
+                    "sources": ["bbc.co.uk/news/business-trade-deal-analysis"],
+                    "source_name": "bbc",
+                    "claim_embedding": [0.12, -0.45, 0.89],
+                    "claim_url": "www.xxx.com",
+                    "confidence_score": 0.8
+                },
+            ],
+        },
+    ]
+
+    input = {
+        'status': 200,
+        'body': parallel_output
+    }
+
+    handler(event=input, context=None)

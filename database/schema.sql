@@ -31,11 +31,13 @@ CREATE TABLE claim (
     technique_id INT NOT NULL,
     summary TEXT NOT NULL,
     claim_embedding VECTOR NOT NULL,
+    confidence_score FLOAT NOT NULL, 
     PRIMARY KEY(claim_id),
     FOREIGN KEY(verdict_id) REFERENCES verdict(verdict_id),
     FOREIGN KEY(technique_id) REFERENCES technique(technique_id),
     CONSTRAINT check_publish_datetime CHECK(publish_datetime <= CURRENT_TIMESTAMP),
     CONSTRAINT check_access_datetime CHECK (access_datetime <= CURRENT_TIMESTAMP),
+    CONSTRAINT check_confidence CHECK (0 <= confidence_score AND 1 >= confidence_score),
     UNIQUE (claim, publish_datetime, access_datetime)
 );
 
