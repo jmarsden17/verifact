@@ -50,19 +50,12 @@ data "aws_iam_policy_document" "dashboard_execution_policy_doc" {
   }
 }
 
-# Scoped Task Policy Document (DynamoDB Read Only, No Batch)
+# Task Policy Document
 data "aws_iam_policy_document" "dashboard_task_permissions_doc" {
   statement {
-    effect = "Allow"
-    actions = [
-      "dynamodb:Scan",
-      "dynamodb:Query",
-      "dynamodb:GetItem"
-    ]
-    resources = [
-      aws_dynamodb_table.c25-disinformation-dynamo.arn,
-      "${aws_dynamodb_table.c25-disinformation-dynamo.arn}/*"
-    ]
+    effect    = "Allow"
+    actions   = ["ssm:GetParameters"]
+    resources = ["*"]
   }
 }
 
@@ -126,9 +119,13 @@ resource "aws_ecs_task_definition" "dashboard_task" {
         { name = "PYTHONPATH", value = "/app" },
         { name = "PYTHONDONTWRITEBYTECODE", value = "1" },
         { name = "PYTHONUNBUFFERED", value = "1" },
-        { name = "TABLE_NAME", value = aws_dynamodb_table.c25-disinformation-dynamo.name },
         { name = "DASHBOARD_PASSWORD", value = var.dashboard_password },
-        { name = "AWS_DEFAULT_REGION", value = var.aws_region }
+        { name = "AWS_DEFAULT_REGION", value = var.aws_region },
+        { name = "DB_HOST", value = aws_db_instance.c25-disinformation-rds.address },
+        { name = "DB_PORT", value = "5432" },
+        { name = "DB_NAME", value = aws_db_instance.c25-disinformation-rds.db_name },
+        { name = "DB_USER", value = var.db_user },
+        { name = "DB_PASSWORD", value = var.db_password }
       ]
 
       healthCheck = {

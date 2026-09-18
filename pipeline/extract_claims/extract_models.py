@@ -1,4 +1,4 @@
-"""Models that configure LLM output for claim extraction and analysis."""
+"""Models that configure LLM output for claim extraction."""
 
 from pydantic import BaseModel, Field
 from typing import Literal
@@ -64,24 +64,3 @@ class InputAnalysis(BaseModel):
     )
     summary: str = Field(
         description="One-sentence summary of what the article is about")
-
-
-class VerdictResult(BaseModel):
-    """Result of verifying a single claim against an article."""
-    claim: str
-    verdict: Literal["Supported", "Contradicted",
-                     "Missing Context", "Unclear"]
-    reasoning: str
-    misinformation_type: TechniqueTag = Field(  # type: ignore[valid-type]
-        description=f"Technique tag for the misinformation. If the claim is supported by the article and is not\
-          misleading, assign 'None'. Choose from the allowed list only: {TECHNIQUE_TAGS}."
-    )
-    entities: list[str] = Field(
-        description="People, organizations, or places named in the claim")
-    tags: list[TopicTag] = Field(  # type: ignore[valid-type]
-        description=f"Topic tags for the verdict. Choose from the allowed list only: {TOPIC_TAGS}",
-        min_length=1,
-        max_length=2
-    )
-    sources: list[str] = Field(
-        description="Article URL that the verdict is based on.")
