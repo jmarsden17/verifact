@@ -9,6 +9,7 @@ from psycopg2 import connect, OperationalError
 from psycopg2.extras import RealDictCursor, execute_values
 from psycopg2.extensions import connection
 import pandas as pd
+import pprint
 
 from transform import transform
 from handler_collate_results import combine_main
@@ -84,7 +85,6 @@ def add_claims_to_database(conn: connection, data: list[tuple]) -> dict:
         query = """
             INSERT INTO claim (
                 claim, 
-                claim_url, 
                 verdict_id, 
                 technique_id, 
                 summary, 
@@ -155,7 +155,6 @@ def format_claim_insert(claims: dict, verdicts: dict, techniques: dict) -> list[
     for claim in claims:
         formatted_tuple.append((
             claim['claim'],
-            claim['claim_url'],
             verdicts[claim['verdict']],
             techniques[claim['technique']],
             claim['summary'],
@@ -208,8 +207,8 @@ def main_claim_insertion_function(conn: connection, data: pd.DataFrame) -> dict:
     logging.info("Successfully retrieved technique mapping")
 
     claims = data[['claim', 'verdict', 'technique', 'summary',
-                   'claim_url', 'claim_embedding', 'confidence_score']].drop_duplicates(subset='claim')
-    claims = claims.to_dict(orient='records')
+                   'claim_embedding', 'confidence_score']].drop_duplicates(subset='claim')
+    claims = claims.dropna().to_dict(orient='records')
 
     formatted_claims = format_claim_insert(claims, verdict_map, technique_map)
     return add_claims_to_database(conn, formatted_claims)
@@ -224,7 +223,7 @@ def main_claim_tags_insertion_function(conn: connection, data: pd.DataFrame) -> 
     claim_tags["tags_id"] = claim_tags["tags"].apply(
         lambda tags: [tag_map[tag] for tag in tags]
     )
-    claim_tags_dict = claim_tags.to_dict(orient='records')
+    claim_tags_dict = claim_tags.dropna().to_dict(orient='records')
 
     formatted_claim_tags = format_claim_tags_insert(claim_tags_dict)
     add_claim_tags_to_database(conn, formatted_claim_tags)
@@ -236,7 +235,7 @@ def main_source_insertion_function(conn: connection, data: pd.DataFrame) -> dict
     logging.info("Successfully retrieved outlet mapping")
 
     sources = data[['sources', 'source_name',
-                    'source_reasoning']].to_dict(orient='records')
+                    'source_reasoning']].dropna().to_dict(orient='records')
 
     formatted_sources = format_sources_insert(sources, outlet_map)
     return add_source_to_database(conn, formatted_sources)
@@ -244,7 +243,9 @@ def main_source_insertion_function(conn: connection, data: pd.DataFrame) -> dict
 
 def main_claim_source_insertion_function(conn: connection, data: pd.DataFrame) -> None:
     """Inserts the source and claim pairing into the database"""
-    claim_source = data[['claim_id', 'source_id']].to_dict(orient='records')
+    claim_source = data[['claim_id', 'source_id']
+                        ].dropna().to_dict(orient='records')
+
     formatted_claim_source = format_claim_source_insert(claim_source)
     add_claim_source_to_database(conn, formatted_claim_source)
 
@@ -335,7 +336,6 @@ if __name__ == "__main__":
                     "sources": ["reuters.com/markets/us-unemployment-august-2026"],
                     "source_name": "Reuters Fact Check",
                     "claim_embedding": [0.12, -0.45, 0.89],
-                    "claim_url": "www.xxx.com",
                     "confidence_score": 0.8
                 },
                 {
@@ -348,7 +348,6 @@ if __name__ == "__main__":
                     "sources": ["reuters.com/business/trade-deal-tariffs-2026"],
                     "source_name": "Reuters Fact Check",
                     "claim_embedding": [0.12, -0.45, 0.89],
-                    "claim_url": "www.xxx.com",
                     "confidence_score": 0.8
                 },
             ],
@@ -367,7 +366,6 @@ if __name__ == "__main__":
                     "sources": ["apnews.com/article/jobs-report-august-2026"],
                     "source_name": "Reuters Fact Check",
                     "claim_embedding": [0.12, -0.45, 0.89],
-                    "claim_url": "www.xxx.com",
                     "confidence_score": 0.8
                 },
                 {
@@ -380,7 +378,6 @@ if __name__ == "__main__":
                     "sources": ["apnews.com/article/trade-deal-steel-tariffs"],
                     "source_name": "Reuters Fact Check",
                     "claim_embedding": [0.12, -0.45, 0.89],
-                    "claim_url": "www.xxx.com",
                     "confidence_score": 0.8
                 },
             ],
@@ -389,19 +386,18 @@ if __name__ == "__main__":
         {
             "statusCode": 200,
             "body": [
-                # {
-                #     "claim": "The unemployment rate fell to 3.8% in August, the lowest in six months.",
-                #     "verdict": "Unclear / Not enough evidence",
-                #     "reasoning": "No matching article found on this source.",
-                #     "misinformation_type": "None",
-                #     "entities": [],
-                #     "tags": [],
-                #     "sources": [],
-                #     "source_name": "Reuters Fact Check",
-                #     "claim_embedding": [0.12, -0.45, 0.89],
-                #     "claim_url": "www.xxx.com",
-                #     "confidence_score": 0.8
-                # },
+                {
+                    "claim": "The unemployment rate fell to 3.8% in August, the lowest in six months.",
+                    "verdict": "Unclear / Not enough evidence",
+                    "reasoning": "No matching article found on this source.",
+                    "misinformation_type": "None",
+                    "entities": [],
+                    "tags": [],
+                    "sources": [],
+                    "source_name": "Reuters Fact Check",
+                    "claim_embedding": [0.12, -0.45, 0.89],
+                    "confidence_score": 0.8
+                },
                 {
                     "claim": "The new trade agreement will eliminate all tariffs between the two countries by 2027.",
                     "verdict": "Contradicted",
@@ -412,7 +408,6 @@ if __name__ == "__main__":
                     "sources": ["bbc.co.uk/news/business-trade-deal-analysis"],
                     "source_name": "Reuters Fact Check",
                     "claim_embedding": [0.12, -0.45, 0.89],
-                    "claim_url": "www.xxx.com",
                     "confidence_score": 0.8
                 },
             ],
