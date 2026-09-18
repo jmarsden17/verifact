@@ -65,7 +65,7 @@ CREATE TABLE outlet (
 CREATE TABLE source (
     source_id INT GENERATED ALWAYS AS IDENTITY,
     source_url TEXT NOT NULL,
-    source_verification TEXT NOT NULL,
+    source_reasoning TEXT NOT NULL,
     outlet_id INT NOT NULL,
     PRIMARY KEY(source_id),
     FOREIGN KEY(outlet_id) REFERENCES outlet(outlet_id)

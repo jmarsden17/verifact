@@ -120,7 +120,7 @@ def add_source_to_database(conn: connection, data: list[tuple]) -> list[int]:
     with conn.cursor() as cursor:
         query = """
             INSERT INTO source
-                (source_url, source_verification, outlet_id)
+                (source_url, source_reasoning, outlet_id)
             VALUES %s
             RETURNING source, source_id;;
         """
@@ -176,7 +176,7 @@ def format_sources_insert(sources: list[dict], outlets) -> list[tuple]:
     for source in sources:
         formatted_sources.append((
             source['sources'],
-            # TODO: Missing source verification -> ask what it is and add it in
+            source['source_reasoning']
             outlets[source['source_name']]
         ))
 
@@ -235,9 +235,8 @@ def handler(event=None, context=None):
     add_claim_tags_to_database(formatted_claim_tags)
     logging.info("Successfully added claim_tags to database")
 
-    # TODO: Missing source verification
     # Insert into source table:
-    sources = data[['sources', 'source_name']]
+    sources = data[['sources', 'source_name', 'source_reasoning']]
     formatted_sources = format_sources_insert(sources, outlet_map)
     source_map = add_source_to_database(formatted_sources)
     logging.info("Successfully added source to database")
