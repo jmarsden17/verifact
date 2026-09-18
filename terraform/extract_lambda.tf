@@ -35,19 +35,13 @@ resource "aws_iam_role_policy" "extract_lambda_policy" {
 
         Resource = "*"
       },
-      {
-        Effect = "Allow"
-
-        Action = [
-          "dynamodb:Scan",
-          "dynamodb:GetItem",
-          "dynamodb:Query"
-        ]
-
-        Resource = aws_dynamodb_table.c25-disinformation-dynamo.arn
-      }
-    ]
+      ]
   })
+}
+
+resource "aws_iam_role_policy_attachment" "vpc_access" {
+  role       = aws_iam_role.extract_lambda_role.id
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
 }
 
 resource "aws_lambda_function" "extract_lambda" {
@@ -58,4 +52,24 @@ resource "aws_lambda_function" "extract_lambda" {
 
     memory_size = 512
     timeout = 120
+    
+      vpc_config {
+        subnet_ids         = var.vpc_subnet_ids
+        security_group_ids = [var.rds_sg_id]
+      }
+    
+
+      environment {
+        variables = {
+          OPENAI_API_KEY  = var.openai_api_key
+          OPENAI_BASE_URL = var.openai_base_url
+          DB_HOST         = var.db_host
+          DB_NAME         = var.db_name
+          DB_USER         = var.db_user
+          DB_PASSWORD     = var.db_password
+          DB_PORT         = var.db_port
+        }
+
+  }
 }
+
