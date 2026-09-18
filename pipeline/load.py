@@ -260,32 +260,7 @@ def handler(event=None, context=None) -> dict:
     logging.info("Successfully connected to the database")
 
     # TODO: Get data from transform:
-    data = pd.DataFrame([
-        {
-            "claim": "The moon is made of green cheese.",
-            "claim_url": "https://example.com/moon-cheese",
-            "verdict": "Supported",
-            "technique": "None",
-            "summary": "Debunking the celestial dairy claim.",
-            "claim_embedding": [0.12, -0.45, 0.89],
-            "tags": ("Military", "Terrorism"),
-            "sources": "https://example.com/source1",
-            "source_name": "BBC Verify",
-            "source_reasoning": "Scientific consensus refutes this."
-        },
-        {
-            "claim": "The moon is made of green cheese.",
-            "claim_url": "https://example.com/moon-cheese",
-            "verdict": "Supported",
-            "technique": "None",
-            "summary": "Debunking the celestial dairy claim.",
-            "claim_embedding": [0.12, -0.45, 0.89],
-            "tags": ("Military", "Terrorism"),
-            "sources": "https://example.com/source2",
-            "source_name": "Reuters Fact Check",
-            "source_reasoning": "Empirical physics standard."
-        }
-    ])
+    data = pd.DataFrame()
     logging.info("Received data from transform")
 
     # Insert into claim table:
