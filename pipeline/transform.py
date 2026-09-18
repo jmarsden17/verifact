@@ -1,8 +1,13 @@
 """Clean and validate claim/verdict records before they are loaded to the database."""
 
+import logging
 import pandas as pd
+from models import TOPIC_TAGS, TECHNIQUE_TAGS
 
-VERDICTS = ["supported", "contradicted", "missing/mixed context", "unclear"]
+logger = logging.getLogger(__name__)
+
+VERDICTS = ["supported", "contradicted", "mixed / missing context", "unclear / not enough evidence"]
+
 
 def clean_list_value(value):
     """Return value if it's a list, else an empty list."""
@@ -27,7 +32,18 @@ def clean_categorical_value(value, allowed: list[str]) -> str:
     allowed_lower = {a.lower() for a in allowed}
     if isinstance(value, str) and value.lower() in allowed_lower:
         return value.lower()
+    logger.warning("Unrecognised categorical value %r, falling back to 'unknown'", value)
     return "unknown"
+
+
+def clean_categorical_list(values, allowed: list[str]) -> list[str]:
+    """Like clean_categorical_value, but for a list: drops any value not in allowed."""
+    allowed_lower = {a.lower() for a in allowed}
+    cleaned = clean_list_value(values)
+    dropped = [v for v in cleaned if not (isinstance(v, str) and v.lower() in allowed_lower)]
+    if dropped:
+        logger.warning("Dropping unrecognised values %r", dropped)
+    return [v for v in cleaned if isinstance(v, str) and v.lower() in allowed_lower]
 
 
 def dedupe_list(values: list[str]) -> list[str]:
@@ -48,31 +64,63 @@ def sort_tags(tags: list[str]) -> list[str]:
 
 
 def clean_tag_list(tags, exclude: list[str] = None) -> list[str]:
-    """Clean, dedupe, filter, and alphabetically sort a tag list in one step."""
-    cleaned = clean_list_value(tags)
-    deduped = dedupe_list(cleaned)
+    """Clean, dedupe, filter against TOPIC_TAGS, and alphabetically sort."""
+    valid = clean_categorical_list(tags, TOPIC_TAGS)
+    deduped = dedupe_list(valid)
     filtered = filter_tags(deduped, exclude=exclude)
     return sort_tags(filtered)
 
 
 def transform(records: list[dict]) -> pd.DataFrame:
     """Clean every column of a list of raw handler_verify_claim.py records."""
+    logger.info("Transforming %d records", len(records))
     df = pd.DataFrame(records)
     if df.empty:
+        logger.warning("No records to transform")
         return df
 
-    for column in ["claim", "reasoning"]:
+    df = df.rename(columns={"reasoning": "summary", "misinformation_type": "technique"})
+
+    for column in ["claim", "summary"]:
+        if column not in df.columns:
+            logger.warning("Column %r missing from records, defaulting to ''", column)
+            df[column] = ""
         df[column] = df[column].apply(clean_text_value)
 
+    if "entities" not in df.columns:
+        logger.warning("Column 'entities' missing from records, defaulting to []")
+        df["entities"] = [[] for _ in range(len(df))]
     df["entities"] = df["entities"].apply(clean_list_value).apply(dedupe_list)
+
+    if "verdict" not in df.columns:
+        logger.warning("Column 'verdict' missing from records, defaulting to None")
+        df["verdict"] = None
     df["verdict"] = df["verdict"].apply(lambda v: clean_categorical_value(v, VERDICTS))
+
+    if "technique" not in df.columns:
+        logger.warning("Column 'technique' missing from records, defaulting to None")
+        df["technique"] = None
+    df["technique"] = df["technique"].apply(
+        lambda v: clean_categorical_value(v, TECHNIQUE_TAGS)
+    )
+    if "tags" not in df.columns:
+        logger.warning("Column 'tags' missing from records, defaulting to []")
+        df["tags"] = [[] for _ in range(len(df))]
     df["tags"] = df["tags"].apply(lambda t: clean_tag_list(t, exclude=["fact-checking"]))
+
+    if "sources" not in df.columns:
+        logger.warning("Column 'sources' missing from records, defaulting to []")
+        df["sources"] = [[] for _ in range(len(df))]
     df["sources"] = df["sources"].apply(clean_list_value)
+
+    logger.info("Finished transforming %d records", len(df))
     return df
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     demo_records = [{"claim": "Example claim.", "verdict": "Supported",
-                      "reasoning": "Example.", "entities": [], "tags": [],
+                      "summary": "Example.", "entities": [],
+                      "technique": "None", "tags": [],
                       "sources": [], "source_name": "Example Source"}]
     print(transform(demo_records))
