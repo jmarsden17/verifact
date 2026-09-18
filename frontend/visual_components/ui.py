@@ -64,7 +64,7 @@ def render_verdict_badge(rating: str):
 
 
 def render_sidebar_logo():
-    """Render the logo inside the Streamlit sidebar."""
+    """Render the logo inside the sidebar."""
 
     logo_svg = """
     <div style="padding: 4px 0px 16px 0px;">
@@ -91,50 +91,44 @@ def render_sidebar_logo():
 
 
 def render_system_status():
-    """Render a live architecture status indicator in the sidebar footer."""
+    """Render a live architecture status indicator pinned to the sidebar footer."""
 
-    st.sidebar.markdown("---")
     st.sidebar.markdown(f"""
-    <div style="background-color: #F8FAFC; border: 1px solid {theme.COLOUR_BORDER}; padding: 12px; border-radius: 8px;">
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-            <span style="font-size: 12px; font-weight: 600; color: {theme.COLOUR_TEXT_MAIN};">Engine Status</span>
-            <span style="font-size: 11px; font-weight: 600; color: {theme.COLOUR_SUCCESS_FG}; background-color: {theme.COLOUR_SUCCESS_BG}; padding: 2px 6px; border-radius: 4px;">● ONLINE</span>
-        </div>
-        <div style="font-size: 11px; color: {theme.COLOUR_TEXT_MUTED}; line-height: 1.4;">
-            • <strong>Architecture:</strong> AWS Lambda<br>
-            • <strong>Vector DB:</strong> DynamoDB<br>
-            • <strong>Avg Latency:</strong> 1.84s
+    <div style="margin-top: auto; padding-top: 20px;">
+        <hr style="margin-bottom: 16px; border: 0; border-top: 1px solid {theme.COLOUR_BORDER};">
+        <div style="background-color: #F8FAFC; border: 1px solid {theme.COLOUR_BORDER}; padding: 12px; border-radius: 8px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                <span style="font-size: 12px; font-weight: 600; color: {theme.COLOUR_TEXT_MAIN};">Engine Status</span>
+                <span style="font-size: 11px; font-weight: 600; color: {theme.COLOUR_SUCCESS_FG}; background-color: {theme.COLOUR_SUCCESS_BG}; padding: 2px 6px; border-radius: 4px;">● ONLINE</span>
+            </div>
+            <div style="font-size: 11px; color: {theme.COLOUR_TEXT_MUTED}; line-height: 1.4;">
+                • <strong>Compute:</strong> AWS ECS Fargate<br>
+                • <strong>Database:</strong> PostgreSQL RDS<br>
+            </div>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
 
-# --- CLAIM VERIFICATION PRIVATE HELPERS ---
+# Claim verification helpers
 
 def _render_demo_presets():
-    """Render one-click preset buttons to pre-fill the form."""
+    """Render a button demonstrating multi-claim extraction."""
 
-    st.markdown("**Try a Sample Newsroom Claim:**")
-    col1, col2, col3 = st.columns(3)
+    st.markdown("**Try a Multi-Claim Newsroom Paragraph:**")
 
-    presets = [
-        ("🍋 Lemon Water Cure", "demo_lemon",
-         "Viral social media posts claim that drinking warm lemon water daily completely cures type 2 diabetes.",
-         "https://example-newsroom.com/health/viral-lemon-claim", col1),
-        ("⚡ EV Tax Changes", "demo_ev",
-         "Government announcing emergency removal of all EV purchase tax credits starting next month.",
-         "https://example-newsroom.com/policy/ev-tax-breakdown", col2),
-        ("💶 Central Bank Rates", "demo_bank",
-         "Leaked internal memo shows central bank planning an emergency 200 basis point rate cut.",
-         "https://example-newsroom.com/finance/rate-cut-rumor", col3)
-    ]
+    multi_claim_paragraph = (
+        "Viral social media posts claim that drinking warm lemon water daily completely cures type 2 diabetes. "
+        "Meanwhile, policy reports suggest the government is removing all EV purchase tax credits starting next month, "
+        "and leaked internal memos claim the central bank is planning an emergency 200 basis point rate cut."
+    )
 
-    for label, key, claim, url, col in presets:
-        with col:
-            if st.button(label, key=key, use_container_width=True):
-                st.session_state.input_claim = claim
-                st.session_state.input_url = url
-                st.rerun()
+    demo_url = "https://example-newsroom.com/analysis/multi-claim-report"
+
+    if st.button("Test Multi-Claim Paragraph Audit", width="stretch"):
+        st.session_state.input_claim = multi_claim_paragraph
+        st.session_state.input_url = demo_url
+        st.rerun()
 
     st.markdown("---")
 
@@ -146,11 +140,11 @@ def _render_verification_form():
         claim_input = st.text_area(
             "Statement or Headline Text",
             value=st.session_state.get("input_claim", ""),
-            placeholder="e.g., 'Viral post claims drinking lemon water completely reverses diabetes...'",
+            placeholder="e.g., 'Viral post claims drinking lemon water completely reverses diabetes.'",
             height=100
         )
         url_input = st.text_input(
-            "Source Link (Optional)",
+            "URL",
             value=st.session_state.get("input_url", ""),
             placeholder="https://example.com/news/article"
         )
@@ -160,28 +154,32 @@ def _render_verification_form():
 
 
 def _render_source_evidence_accordion(sources):
-    """Render source evidence cards with keyword highlights."""
+    """Render source evidence cards with keyword highlights for verified outlets."""
 
     st.markdown("---")
     st.markdown("### Retrieved Source Evidence")
     st.markdown(
         f"<p style='font-size: 13px; color: {theme.COLOUR_TEXT_MUTED}; margin-bottom: 16px;'>"
-        "Primary fact-checking records retrieved via semantic vector search.</p>",
+        "Primary fact-checking records retrieved exclusively from BBC Verify, Reuters, Full Fact, and Wikipedia.</p>",
         unsafe_allow_html=True
     )
 
-    keywords = ["lemon water", "diabetes", "tax credits", "EV", "rate cut"]
+    # Avoid substring matches like "EVidence"
+    keywords = [r"\bEV\b", r"\blemon water\b",
+                r"\bdiabetes\b", r"\brate cut\b", r"\bcentral bank\b"]
 
     for i, src in enumerate(sources):
-        snippet_text = src['snippet']
+        snippet_text = src.get('snippet', '')
+        source_name = src.get('name', 'Verified Source')
+
         for kw in keywords:
-            pattern = re.compile(re.escape(kw), re.IGNORECASE)
+            pattern = re.compile(kw, re.IGNORECASE)
             snippet_text = pattern.sub(
-                f"<mark style='background-color: {theme.COLOUR_WARNING_BG}; color: {theme.COLOUR_WARNING_FG}; padding: 2px 4px; border-radius: 4px; font-weight: 600;'>{kw}</mark>",
+                f"<mark style='background-color: {theme.COLOUR_WARNING_BG}; color: {theme.COLOUR_WARNING_FG}; padding: 2px 4px; border-radius: 4px; font-weight: 600;'>\\g<0></mark>",
                 snippet_text
             )
 
-        with st.expander(f"📌 Source {i+1}: {src['name']} (Semantic Match: 96%)", expanded=(i == 0)):
+        with st.expander(f"📌 Source {i+1}: {source_name} (Semantic Match: 96%)", expanded=(i == 0)):
             col_meta1, col_meta2 = st.columns([2, 1])
 
             with col_meta1:
@@ -195,46 +193,94 @@ def _render_source_evidence_accordion(sources):
             with col_meta2:
                 st.markdown(f"""
                 <div style="background-color: #FFFFFF; border: 1px solid {theme.COLOUR_BORDER}; padding: 10px; border-radius: 6px; font-size: 12px;">
-                    <strong>Domain Rating:</strong> 92/100<br>
+                    <strong>Outlet:</strong> {source_name}<br>
                     <strong>Record Status:</strong> <span style="color: {theme.COLOUR_SUCCESS_FG}; font-weight: 600;">VERIFIED</span><br>
                     <strong>Ingested:</strong> 2 days ago
                 </div>
                 """, unsafe_allow_html=True)
 
 
-def _render_verification_results(result):
-    """Render verdict summary, gauge meter, evidence, export controls, and trigger scroll JS."""
-    # 1. Invisible Scroll Anchor
+def _render_verification_results(results_list: list):
+    """Render multi-claim overview followed by smaller claims."""
+
+    if not results_list:
+        return
+
     st.markdown('<div id="verification-results"></div>',
                 unsafe_allow_html=True)
     st.markdown("---")
-    st.markdown("### Verification Summary")
 
-    col_verdict, col_gauge = st.columns([1, 1])
+    # Overall summary
+    st.markdown("### 📊 Paragraph Audit Overview")
 
-    with col_verdict:
-        st.markdown("<br>", unsafe_allow_html=True)
-        render_verdict_badge(result["rating"])
-        st.markdown("**Reasoning Explanation:**")
-        st.markdown(result["reasoning"])
+    total_claims = len(results_list)
+    supported = sum(1 for r in results_list if r.get("rating") == "Supported")
+    contradicted = sum(1 for r in results_list if r.get(
+        "rating") == "Contradicted")
+    missing_ctx = sum(1 for r in results_list if r.get(
+        "rating") == "Missing Context")
+    unclear = sum(1 for r in results_list if r.get("rating") == "Unclear")
 
-    with col_gauge:
-        confidence = 94.2 if result["rating"] in [
-            "Supported", "Contradicted"] else 68.5
-        fig = vis.render_confidence_gauge(confidence, result["rating"])
-        st.plotly_chart(fig, use_container_width=True,
-                        config={'displayModeBar': False})
+    accuracy_pct = round((supported / total_claims) *
+                         100) if total_claims > 0 else 0
 
-    # 2. Render Accordion Evidence Cards
-    _render_source_evidence_accordion(result["sources"])
+    with st.container(border=True):
+        col_stats, col_chart = st.columns([1.5, 1])
+
+        with col_stats:
+            st.markdown(f"**Total Claims Extracted:** `{total_claims}`")
+            st.markdown(f"✅ **Supported Claims:** `{supported}`")
+            st.markdown(f"❌ **Disproved (Contradicted):** `{contradicted}`")
+            st.markdown(
+                f"⚠️ **Missing Context / Unclear:** `{missing_ctx + unclear}`")
+            st.markdown(f"🎯 **Overall Accuracy Score:** **{accuracy_pct}%**")
+
+        with col_chart:
+            st.markdown(
+                "<p style='text-align: center; font-size: 13px; font-weight: 600;'>Accuracy Breakdown</p>", unsafe_allow_html=True)
+            fig_pie = vis.render_overall_accuracy_chart(
+                supported, contradicted, missing_ctx, unclear)
+            if fig_pie:
+                st.plotly_chart(fig_pie, width="stretch",
+                                config={'displayModeBar': False})
 
     st.markdown("---")
 
-    # 3. Render Export Buttons
-    _render_export_buttons(result)
+    # Individual claim expanders
+    st.markdown("### 🔍 Individual Extracted Claim Reports")
 
-    # 4. Smooth Scroll JS Trigger
-    st.components.v1.html("""
+    for idx, item in enumerate(results_list):
+        claim_text = item.get("claim", f"Extracted Claim #{idx+1}")
+        rating = item.get("rating", "Unclear")
+
+        expander_title = f"Claim {idx+1}: \"{claim_text[:80]}...\" — [{rating.upper()}]"
+
+        with st.expander(expander_title, expanded=(idx == 0)):
+            # Split 2 columns for Statement & Confidence Gauge
+            col_verdict, col_gauge = st.columns([1.2, 1])
+
+            with col_verdict:
+                st.markdown("**Extracted Statement:**")
+                st.info(f"\"{claim_text}\"")
+                render_verdict_badge(rating)
+                st.markdown("**Reasoning Explanation:**")
+                st.write(item.get("reasoning", "No explanation provided."))
+
+            with col_gauge:
+                confidence = 94.2 if rating in [
+                    "Supported", "Contradicted"] else 68.5
+                fig_gauge = vis.render_confidence_gauge(confidence)
+                st.plotly_chart(
+                    fig_gauge,
+                    width="stretch",
+                    config={'displayModeBar': False},
+                    key=f"gauge_chart_{idx}"
+                )
+
+            if item.get("sources"):
+                _render_source_evidence_accordion(item["sources"])
+
+        st.components.v1.html("""
         <script>
             setTimeout(function() {
                 var target = window.parent.document.getElementById("verification-results");
@@ -246,7 +292,7 @@ def _render_verification_results(result):
     """, height=0)
 
 
-# --- MAIN VIEWS ---
+# Main views
 
 def render_claim_verification_view():
     """Main Verification Workspace."""
@@ -274,31 +320,44 @@ def render_claim_verification_view():
         _render_verification_results(result)
 
 
-def render_breaking_stories_view():
-    """Clean Breaking News Feed."""
+def render_top_disproven_claims_view():
+    """Render feed of top viral fake news and disproven claims from RDS."""
 
     render_page_header(
-        "Top Breaking Claims",
-        "Recent claims indexed from primary fact-checking outlets."
+        "Top Disproven Claims",
+        "Live feed of widespread disproven assertions and misleading viral claims indexed across partner outlets."
     )
 
-    items = fn.get_breaking_claims()
-    for item in items:
-        with st.container(border=True):
-            col_content, col_badge = st.columns([4, 1.5])
+    df = fn.get_top_disproven_claims()
 
-            with col_content:
-                st.markdown(
-                    f"<span style='font-size: 12px; color: {theme.COLOUR_TEXT_MUTED};'>{item['time']} • {item['outlet']}</span>",
-                    unsafe_allow_html=True
-                )
-                st.markdown(
-                    f"<strong style='font-size: 16px; color: {theme.COLOUR_TEXT_MAIN};'>{item['title']}</strong>",
-                    unsafe_allow_html=True
-                )
+    if df.empty:
+        st.info("No disproven claims currently recorded in the system.")
+        return
 
-            with col_badge:
-                render_verdict_badge(item["status"])
+    for _, row in df.iterrows():
+        verdict = row["verdict"]
+        badge_bg = theme.COLOUR_DANGER_BG if verdict == "Contradicted" else theme.COLOUR_WARNING_BG
+        badge_fg = theme.COLOUR_DANGER_FG if verdict == "Contradicted" else theme.COLOUR_WARNING_FG
+        icon = "✖" if verdict == "Contradicted" else "⚠️"
+
+        publisher_text = row.get("publishers") or "Verified Fact Check"
+        timestamp_text = str(row.get("timestamp", ""))
+
+        st.markdown(f"""
+        <div style="background-color: #F8FAFC; border: 1px solid {theme.COLOUR_BORDER}; padding: 18px; border-radius: 10px; margin-bottom: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="font-size: 12px; color: {theme.COLOUR_TEXT_MUTED}; font-weight: 500;">
+                    {timestamp_text} • {publisher_text}
+                </span>
+                <span style="font-size: 11px; font-weight: 700; color: {badge_fg}; background-color: {badge_bg}; padding: 4px 10px; border-radius: 12px;">
+                    {icon} VERDICT: {verdict.upper()}
+                </span>
+            </div>
+            <div style="font-size: 16px; font-weight: 600; color: {theme.COLOUR_TEXT_MAIN}; margin-top: 4px;">
+                "{row['claim_text']}"
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
 
 def render_outlet_credibility_view():
@@ -309,7 +368,6 @@ def render_outlet_credibility_view():
         "Live distribution metrics across ingested fact-checking partners and techniques."
     )
 
-    # Fetch live RDS data
     df = fn.fetch_analytics_data()
 
     if df.empty:
@@ -317,20 +375,18 @@ def render_outlet_credibility_view():
             "⚠️ Unable to load live database records. Please verify your RDS connection settings in your environment.")
         return
 
-    # Data transformations
     df["publish_datetime"] = pd.to_datetime(df["publish_datetime"])
     df["access_datetime"] = pd.to_datetime(df["access_datetime"])
 
     total_claims = len(df)
-    resurfaced_count = ((df["access_datetime"] -
-                        df["publish_datetime"]).dt.days > 7).sum()
+    resurfaced_count = (
+        (df["access_datetime"] - df["publish_datetime"]).dt.days > 7).sum()
 
     top_publisher = df["publisher"].mode(
     )[0] if "publisher" in df and not df["publisher"].dropna().empty else "N/A"
     top_technique = df["technique"].mode(
     )[0] if "technique" in df and not df["technique"].dropna().empty else "N/A"
 
-    # --- LIVE KPI CARDS ---
     m1, m2, m3, m4 = st.columns(4)
 
     with m1:
@@ -345,7 +401,6 @@ def render_outlet_credibility_view():
 
     st.markdown("---")
 
-    # --- ROW 1: CHARTS ---
     col_chart1, col_chart2 = st.columns(2)
 
     with col_chart1:
@@ -357,7 +412,7 @@ def render_outlet_credibility_view():
         )
         fig_publisher = vis.render_outlet_analytics_chart(df)
         if fig_publisher:
-            st.plotly_chart(fig_publisher, use_container_width=True,
+            st.plotly_chart(fig_publisher, width="stretch",
                             config={'displayModeBar': False})
 
     with col_chart2:
@@ -369,100 +424,25 @@ def render_outlet_credibility_view():
         )
         fig_recurrence = vis.render_recurrence_timeline_chart(df)
         if fig_recurrence:
-            st.plotly_chart(fig_recurrence, use_container_width=True,
+            st.plotly_chart(fig_recurrence, width="stretch",
                             config={'displayModeBar': False})
 
     st.markdown("---")
 
-    # --- ROW 2: LIVE RESURFACED CLAIMS TABLE ---
-    st.markdown("### 🔍 High-Recurrence Claim Monitor")
-    st.markdown(
-        f"<p style='font-size: 13px; color: {theme.COLOUR_TEXT_MUTED}; margin-bottom: 16px;'>"
-        "Claims from the database that are queried repeatedly over time.</p>",
-        unsafe_allow_html=True
-    )
-
-    st.dataframe(
-        df[[
-            "claim", "verdict", "technique", "publisher", "publish_datetime", "access_datetime"
-        ]].rename(columns={
-            "claim": "Claim Text",
-            "verdict": "Verdict",
-            "technique": "Technique",
-            "publisher": "Publisher",
-            "publish_datetime": "Originally Published",
-            "access_datetime": "Last Queried"
-        }),
-        use_container_width=True,
-        hide_index=True
-    )
-
-
-def _render_export_buttons(result):
-    """Render single-click report export controls."""
-    st.markdown("**Export Verification Audit:**")
-
-    # Safely retrieve claim string without throwing KeyError
-    claim_text = result.get("claim") or st.session_state.get("input_claim", "")
-
-    # Generate JSON payload stream
-    export_payload = {
-        "system": "Disinformation Verifier v1.0",
-        "timestamp": "2026-09-15T12:00:00Z",
-        "claim": claim_text,
-        "verdict": result.get("rating", "Unclear"),
-        "confidence_score": 94.2 if result.get("rating") in ["Supported", "Contradicted"] else 68.5,
-        "reasoning": result.get("reasoning", ""),
-        "retrieved_sources": result.get("sources", [])
-    }
-
-    json_str = json.dumps(export_payload, indent=2)
-
-    col_exp1, col_exp2 = st.columns([1, 1])
-    with col_exp1:
-        st.download_button(
-            label="📄 Download JSON Audit Record",
-            data=json_str,
-            file_name="verification_audit_report.json",
-            mime="application/json",
-            use_container_width=True
-        )
-    with col_exp2:
-        # Plain text audit summary export
-        text_summary = f"""DISINFORMATION VERIFIER - AUDIT REPORT
-----------------------------------------
-Claim: {claim_text}
-Verdict: {result.get('rating', 'UNCLEAR').upper()}
-Confidence: 94.2%
-
-Reasoning:
-{result.get('reasoning', '')}
-
-Sources Verified:
-""" + "\n".join([f"- {s.get('name', 'Source')}: {s.get('snippet', '')}" for s in result.get("sources", [])])
-
-        st.download_button(
-            label="📝 Download Text Summary",
-            data=text_summary,
-            file_name="verification_summary.txt",
-            mime="text/plain",
-            use_container_width=True
-        )
-
 
 def render_verification_logs_view():
-    """Filterable Data Table View for past checks."""
+    """Filterable Data Table View matching exact ERD entities."""
 
     render_page_header(
         "Verification History Logs",
-        "Search and review past newsroom claim checks."
+        "Search and review past newsroom claim checks indexed in RDS."
     )
 
     with st.container(border=True):
         c1, c2 = st.columns([3, 1])
         with c1:
-            query = st.text_input("Filter by Keyword",
-                                  placeholder="Search claim keywords...")
+            query = st.text_input("Filter by Keyword or Tag",
+                                  placeholder="Search claims or tags...")
         with c2:
             status = st.selectbox(
                 "Verdict Filter",
@@ -470,4 +450,29 @@ def render_verification_logs_view():
             )
 
     df = fn.get_filtered_logs(query, status)
-    st.dataframe(df, use_container_width=True, hide_index=True)
+
+    if df.empty:
+        st.info("No verification logs match your filter criteria.")
+        return
+
+    # Select and rename columns explicitly to ensure UI updates regardless of DB fallback format
+    display_cols = {
+        "timestamp": "Timestamp",
+        "claim_statement": "Claim Statement",
+        "verdict": "Verdict",
+        "technique": "Disinformation Technique",
+        "sources_count": "Sources Consulted",
+        "tags_list": "Tags"
+    }
+
+    # Filter dataframe to available ERD columns
+    valid_cols = [c for c in display_cols.keys() if c in df.columns]
+
+    if valid_cols:
+        st.dataframe(
+            df[valid_cols].rename(columns=display_cols),
+            width="stretch",
+            hide_index=True
+        )
+    else:
+        st.dataframe(df, width="stretch", hide_index=True)
