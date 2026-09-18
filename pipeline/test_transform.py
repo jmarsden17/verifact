@@ -1,6 +1,6 @@
 """Tests for transform script."""
 
-from transform import (
+from pipeline.transform_load.transform import (
     clean_categorical_list,
     clean_categorical_value,
     clean_float_value,
@@ -13,7 +13,8 @@ from transform import (
     transform,
 )
 
-VERDICTS = ["supported", "contradicted", "mixed / missing context", "unclear / not enough evidence"]
+VERDICTS = ["supported", "contradicted",
+            "mixed / missing context", "unclear / not enough evidence"]
 TECHNIQUES = ["Deepfake", "Misleading Context", "None"]
 TOPICS = ["Europe", "Media Journalism", "Technology"]
 
@@ -145,7 +146,8 @@ def test_clean_categorical_value_is_case_insensitive():
 
 def test_clean_categorical_list_keeps_only_allowed_values():
     """Values not in the allowed list are dropped."""
-    result = clean_categorical_list(["Europe", "Nonsense", "Technology"], TOPICS)
+    result = clean_categorical_list(
+        ["Europe", "Nonsense", "Technology"], TOPICS)
     assert result == ["Europe", "Technology"]
 
 
@@ -176,7 +178,8 @@ def test_dedupe_list_handles_empty_list():
 
 def test_sort_tags_sorts_alphabetically():
     """Tags are returned in alphabetical order."""
-    assert sort_tags(["inflation", "economy", "finance"]) == ["economy", "finance", "inflation"]
+    assert sort_tags(["inflation", "economy", "finance"]) == [
+        "economy", "finance", "inflation"]
 
 
 def test_sort_tags_is_case_insensitive():
@@ -191,7 +194,8 @@ def test_sort_tags_handles_empty_list():
 
 def test_clean_tag_list_dedupes_filters_and_validates():
     """clean_tag_list drops invalid tags, dedupes, filters, and sorts."""
-    tags = ["fact-checking", "Europe", "Nonsense Tag", "europe", "Media Journalism"]
+    tags = ["fact-checking", "Europe",
+            "Nonsense Tag", "europe", "Media Journalism"]
 
     result = clean_tag_list(tags, exclude=["fact-checking"])
 

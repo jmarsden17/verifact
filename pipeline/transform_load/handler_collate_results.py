@@ -2,11 +2,11 @@
 from summary import generate_summary
 
 
-def handler(event, context):
+def combine_main(event):
     """Handler to collate verification results from parallel Lambdas."""
 
     # Returns dict where keys are claim texts and values are lists of verdicts from different sources.
-    results = aggregate_verdicts(event["body"])["body"]
+    results = aggregate_verdicts(event)["body"]
 
     # Returns dict where keys are claim texts and values are the corresponding summaries.
     summaries = generate_summary(results)
@@ -19,10 +19,7 @@ def handler(event, context):
             "summary": summaries.get(claim_text),
         }
 
-    return {
-        "statusCode": 200,
-        "body": combined
-    }
+    return combined
 
 
 def aggregate_verdicts(claims) -> dict:
