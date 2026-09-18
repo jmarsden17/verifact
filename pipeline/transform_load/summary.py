@@ -5,31 +5,14 @@ import os
 from openai import OpenAI
 from dotenv import load_dotenv
 from summary_models import SummaryResult
+from handler_collate_results import aggregate_verdicts
 
 
-def aggregate_verdicts(claims) -> dict:
-    """Pivot per-source verdict lists into a claim-keyed structure."""
-    grouped = {}
-
-    for branch_output in claims:
-        for verdict in branch_output["body"]:
-            claim_text = verdict["claim"]
-            grouped.setdefault(claim_text, []).append(verdict)
-
-    return {
-        "statusCode": 200,
-        "body": grouped
-    }
-
-
-def generate_summary(claims: list[dict]) -> SummaryResult:
+def generate_summary(grouped_claims: list[dict]) -> SummaryResult:
     """Generate a summary of multiple source claims and their corresponding verdicts using OpenAI's API."""
     load_dotenv()
     client = OpenAI(api_key=os.environ["OPENAI_API_KEY"],
                     base_url=os.environ["OPENAI_BASE_URL"])
-
-    grouped_claims = aggregate_verdicts(claims)["body"]
-
     summaries = {}
 
     for key in grouped_claims:
