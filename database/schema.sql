@@ -70,8 +70,7 @@ CREATE TABLE source (
     source_reasoning TEXT NOT NULL,
     outlet_id INT NOT NULL,
     PRIMARY KEY(source_id),
-    FOREIGN KEY(outlet_id) REFERENCES outlet(outlet_id),
-    UNIQUE (source_url, source_reasoning, outlet_id)
+    FOREIGN KEY(outlet_id) REFERENCES outlet(outlet_id)
 );
 
 CREATE TABLE claim_source (

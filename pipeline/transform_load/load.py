@@ -125,8 +125,6 @@ def add_source_to_database(conn: connection, data: list[tuple]) -> list[int]:
             INSERT INTO source
                 (source_url, source_reasoning, outlet_id)
             VALUES %s
-            ON CONFLICT (source_url, source_reasoning, outlet_id)
-            DO NOTHING
             RETURNING source_url, source_id;;
         """
 
@@ -277,8 +275,22 @@ def handler(event=None, context=None) -> dict:
         verdict_list.append(combined[key]['summary'])
     logging.info("Received data to transform")
 
-    data = transform(verdict_list)
+    # Transform raw data to DataFrame
+    df = transform(verdict_list)
     logging.info("Transformed data")
+
+    # Extract records and flatten the DataFrame
+    records = df.to_dict(orient='records')
+    flattened_data = [
+        val
+        for row in records
+        for key, val in row.items()
+        if isinstance(val, dict) and val.get("claim")
+    ]
+    flattened_data = transform(flattened_data)
+
+    # Convert flattened list back to a clean DataFrame for SQL operations
+    data = pd.DataFrame(flattened_data)
 
     # Insert into claim table:
     claim_map = main_claim_insertion_function(conn, data)
@@ -321,7 +333,7 @@ if __name__ == "__main__":
                     "entities": ["Bureau of Labor Statistics"],
                     "tags": ["Economy Finance"],
                     "sources": ["reuters.com/markets/us-unemployment-august-2026"],
-                    "source_name": "reuters",
+                    "source_name": "Reuters Fact Check",
                     "claim_embedding": [0.12, -0.45, 0.89],
                     "claim_url": "www.xxx.com",
                     "confidence_score": 0.8
@@ -334,7 +346,7 @@ if __name__ == "__main__":
                     "entities": ["Ministry of Trade"],
                     "tags": ["Trade Tariffs"],
                     "sources": ["reuters.com/business/trade-deal-tariffs-2026"],
-                    "source_name": "reuters",
+                    "source_name": "Reuters Fact Check",
                     "claim_embedding": [0.12, -0.45, 0.89],
                     "claim_url": "www.xxx.com",
                     "confidence_score": 0.8
@@ -353,7 +365,7 @@ if __name__ == "__main__":
                     "entities": ["Bureau of Labor Statistics"],
                     "tags": ["Economy Finance"],
                     "sources": ["apnews.com/article/jobs-report-august-2026"],
-                    "source_name": "ap",
+                    "source_name": "Reuters Fact Check",
                     "claim_embedding": [0.12, -0.45, 0.89],
                     "claim_url": "www.xxx.com",
                     "confidence_score": 0.8
@@ -366,7 +378,7 @@ if __name__ == "__main__":
                     "entities": ["Ministry of Trade"],
                     "tags": ["Trade Tariffs"],
                     "sources": ["apnews.com/article/trade-deal-steel-tariffs"],
-                    "source_name": "ap",
+                    "source_name": "Reuters Fact Check",
                     "claim_embedding": [0.12, -0.45, 0.89],
                     "claim_url": "www.xxx.com",
                     "confidence_score": 0.8
@@ -377,19 +389,19 @@ if __name__ == "__main__":
         {
             "statusCode": 200,
             "body": [
-                {
-                    "claim": "The unemployment rate fell to 3.8% in August, the lowest in six months.",
-                    "verdict": "Unclear / Not enough evidence",
-                    "reasoning": "No matching article found on this source.",
-                    "misinformation_type": "None",
-                    "entities": [],
-                    "tags": [],
-                    "sources": [],
-                    "source_name": "bbc",
-                    "claim_embedding": [0.12, -0.45, 0.89],
-                    "claim_url": "www.xxx.com",
-                    "confidence_score": 0.8
-                },
+                # {
+                #     "claim": "The unemployment rate fell to 3.8% in August, the lowest in six months.",
+                #     "verdict": "Unclear / Not enough evidence",
+                #     "reasoning": "No matching article found on this source.",
+                #     "misinformation_type": "None",
+                #     "entities": [],
+                #     "tags": [],
+                #     "sources": [],
+                #     "source_name": "Reuters Fact Check",
+                #     "claim_embedding": [0.12, -0.45, 0.89],
+                #     "claim_url": "www.xxx.com",
+                #     "confidence_score": 0.8
+                # },
                 {
                     "claim": "The new trade agreement will eliminate all tariffs between the two countries by 2027.",
                     "verdict": "Contradicted",
@@ -398,7 +410,7 @@ if __name__ == "__main__":
                     "entities": ["Ministry of Trade"],
                     "tags": ["Trade Tariffs"],
                     "sources": ["bbc.co.uk/news/business-trade-deal-analysis"],
-                    "source_name": "bbc",
+                    "source_name": "Reuters Fact Check",
                     "claim_embedding": [0.12, -0.45, 0.89],
                     "claim_url": "www.xxx.com",
                     "confidence_score": 0.8
