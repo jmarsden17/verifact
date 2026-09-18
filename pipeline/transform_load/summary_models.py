@@ -1,5 +1,8 @@
-from pydantic import BaseModel, Field
+"""Model for summarizing multiple source claims and their corresponding verdicts."""
+
 from typing import Literal
+from pydantic import BaseModel, Field
+
 
 TOPIC_TAGS = [
     "Politics UK", "Politics USA", "Politics International", "Elections US", "Elections UK", "Elections International", "War/Conflict",
