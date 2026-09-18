@@ -3,6 +3,7 @@
 from transform import (
     clean_categorical_list,
     clean_categorical_value,
+    clean_float_value,
     clean_list_value,
     clean_tag_list,
     clean_text_value,
@@ -45,6 +46,31 @@ def test_clean_text_value_converts_none_to_empty_string():
 def test_clean_text_value_converts_non_string_to_empty_string():
     """A non-string value becomes an empty string."""
     assert clean_text_value(123) == ""
+
+
+def test_clean_float_value_keeps_a_float():
+    """A real float is returned unchanged."""
+    assert clean_float_value(0.94) == 0.94
+
+
+def test_clean_float_value_keeps_an_int():
+    """An int is returned unchanged."""
+    assert clean_float_value(1) == 1
+
+
+def test_clean_float_value_converts_none_to_none():
+    """None stays None."""
+    assert clean_float_value(None) is None
+
+
+def test_clean_float_value_converts_non_numeric_to_none():
+    """A non-numeric value becomes None."""
+    assert clean_float_value("not a number") is None
+
+
+def test_clean_float_value_converts_bool_to_none():
+    """A bool (technically an int subclass in Python) is rejected."""
+    assert clean_float_value(True) is None
 
 
 def test_filter_tags_removes_excluded_tags():
@@ -177,7 +203,7 @@ def test_clean_tag_list_handles_non_list_input():
     assert not clean_tag_list(None, exclude=[])
 
 
-def test_transform_produces_clean_dataframe():
+def test_transform_produces_clean_dataframe_for_normal_branch():
     """transform() cleans every column of a normal (non-skip_etl) verdict record."""
     records = [
         {
@@ -188,7 +214,7 @@ def test_transform_produces_clean_dataframe():
             "entities": ["Eiffel Tower", "eiffel tower", "London"],
             "tags": ["fact-checking", "Europe", "Nonsense Tag"],
             "sources": ["https://fullfact.org/x"],
-            "source_name": "Full Fact",
+            "source_name": "  Full Fact  ",
         }
     ]
 
@@ -197,15 +223,21 @@ def test_transform_produces_clean_dataframe():
     row = df.iloc[0]
     assert row["claim"] == "The Eiffel Tower is in London."
     assert row["verdict"] == "contradicted"
-    assert row["summary"] == "It's actually in Paris."
+    assert row["source_reasoning"] == "It's actually in Paris."
     assert row["technique"] == "misleading context"
-    assert row["entities"] == ["Eiffel Tower", "London"]
-    assert row["tags"] == ["Europe"]
-    assert row["sources"] == ["https://fullfact.org/x"]
+    assert row["entities"] == ("Eiffel Tower", "London")
+    assert isinstance(row["entities"], tuple)
+    assert row["tags"] == ("Europe",)
+    assert isinstance(row["tags"], tuple)
+    assert row["sources"] == ("https://fullfact.org/x",)
+    assert isinstance(row["sources"], tuple)
     assert row["source_name"] == "Full Fact"
+    assert row["summary"] == ""
+    assert row["similar_claim"] == ""
+    assert row["similarity"] is None
 
 
-def test_transform_handles_invalid_misinformation_type():
+def test_transform_handles_invalid_technique():
     """An unrecognised technique becomes 'unknown'."""
     records = [
         {
@@ -224,12 +256,12 @@ def test_transform_handles_invalid_misinformation_type():
     assert df.iloc[0]["technique"] == "unknown"
 
 
-def test_transform_handles_skip_etl_shaped_record_without_crashing():
-    """A skip_etl record doesn't crash transform(), and its native summary/technique columns get cleaned."""
+def test_transform_produces_clean_dataframe_for_skip_etl_branch():
+    """transform() cleans a skip_etl record's own summary/technique/similarity fields."""
     records = [
         {
-            "claim": "The Eiffel Tower was built in 1889.",
-            "similar_claim": "The Eiffel Tower was completed in 1889.",
+            "claim": "  The Eiffel Tower was built in 1889.  ",
+            "similar_claim": "  The Eiffel Tower was completed in 1889.  ",
             "similarity": 0.97,
             "verdict": "Supported",
             "summary": "  Confirmed by a previous check.  ",
@@ -244,9 +276,44 @@ def test_transform_handles_skip_etl_shaped_record_without_crashing():
     assert row["verdict"] == "supported"
     assert row["summary"] == "Confirmed by a previous check."
     assert row["technique"] == "none"
+    assert row["similar_claim"] == "The Eiffel Tower was completed in 1889."
+    assert row["similarity"] == 0.97
+    assert row["source_reasoning"] == ""
     assert not row["entities"]
     assert not row["tags"]
     assert not row["sources"]
+
+
+def test_transform_handles_mixed_batch_without_crashing():
+    """A batch mixing normal and skip_etl records doesn't create duplicate columns."""
+    records = [
+        {
+            "claim": "Normal claim.",
+            "verdict": "Contradicted",
+            "reasoning": "Per this source, false.",
+            "misinformation_type": "Deepfake",
+            "entities": [],
+            "tags": [],
+            "sources": [],
+            "source_name": "Full Fact",
+        },
+        {
+            "claim": "Cached claim.",
+            "similar_claim": "Similar claim.",
+            "similarity": 0.95,
+            "verdict": "Supported",
+            "summary": "Overall summary from prior check.",
+            "technique": "None",
+        },
+    ]
+
+    df = transform(records)
+
+    assert not df.columns.duplicated().any()
+    assert df.iloc[0]["source_reasoning"] == "Per this source, false."
+    assert df.iloc[0]["technique"] == "deepfake"
+    assert df.iloc[1]["summary"] == "Overall summary from prior check."
+    assert df.iloc[1]["technique"] == "none"
 
 
 def test_transform_handles_empty_list():
