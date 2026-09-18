@@ -166,10 +166,10 @@ def format_claim_tags_insert(claim_tags: list[dict]) -> list[tuple]:
     """Returns a formatted list of tuples for insertion"""
     formatted_insert = []
     for item in claim_tags:
-        for id in item['tags_id']:
+        for tag_id in item['tags_id']:
             formatted_insert.append((
                 int(item['claim_id']),
-                int(id)
+                int(tag_id)
             ))
     return formatted_insert
 
@@ -198,6 +198,9 @@ def format_claim_source_insert(claim_sources: dict) -> list[tuple]:
 
 
 def handler(event=None, context=None) -> dict:
+    """
+    Main handler function for Lambda
+    """
 
     # Set up:
     logging.basicConfig(level=logging.INFO)
