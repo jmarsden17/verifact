@@ -5,7 +5,7 @@ import json
 import streamlit as st
 import pandas as pd
 from . import theme
-from utils import db as fn
+from database_conns import fetch_data as fn
 from . import visuals as vis
 
 

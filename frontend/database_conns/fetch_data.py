@@ -1,36 +1,22 @@
 """Data logic and backend handlers."""
 
-import os
 import sys
 from pathlib import Path
 import pandas as pd
-import psycopg2
 from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
+from requests import get
+
+from .connection import get_db_connection
 
 # Force loading .env file explicitly from the frontend folder
 env_path = Path(__file__).resolve().parent.parent / ".env"
 load_dotenv(dotenv_path=env_path)
 
-
-def get_db_connection():
-    """Establish connection to PostgreSQL RDS using environment variables."""
-    host = os.getenv("DB_HOST") or os.getenv("db_host")
-    port = os.getenv("DB_PORT") or os.getenv("db_port") or "5432"
-    dbname = os.getenv("DB_NAME") or os.getenv("db_name")
-    user = os.getenv("DB_USER") or os.getenv("db_user")
-    password = os.getenv("DB_PASSWORD") or os.getenv("db_password")
-
-    # Debug print statement (visible in terminal running Streamlit)
-    print(f"Connecting to DB: host={host}, dbname={dbname}, user={user}")
-
-    return psycopg2.connect(
-        host=host,
-        port=port,
-        dbname=dbname,
-        user=user,
-        password=password
-    )
+# Add 'pipeline' directory to Python path for cross-folder imports
+PIPELINE_DIR = Path(__file__).resolve().parent.parent / "pipeline"
+if str(PIPELINE_DIR) not in sys.path:
+    sys.path.append(str(PIPELINE_DIR))
 
 
 def fetch_analytics_data() -> pd.DataFrame:
@@ -61,7 +47,7 @@ def fetch_analytics_data() -> pd.DataFrame:
         conn.close()
         return df
     except Exception:
-        # Multi-outlet mock fallback matching the SQL aggregation above
+        # Mock fallback data
         return pd.DataFrame([
             {
                 "claim_id": 1,
@@ -93,11 +79,6 @@ def fetch_analytics_data() -> pd.DataFrame:
         ])
 
 
-# Add 'pipeline' directory to Python path for cross-folder imports
-PIPELINE_DIR = Path(__file__).resolve().parent.parent / "pipeline"
-if str(PIPELINE_DIR) not in sys.path:
-    sys.path.append(str(PIPELINE_DIR))
-
 # Import pipeline handlers dynamically
 try:
     import pipeline.handler_extract_claims as handler_extract_claims
@@ -110,61 +91,10 @@ except ImportError:
 def verify_claim(claim_input: str, url_input: str = "") -> dict:
     """Pass user input to pipeline handlers and return formatted results for UI."""
 
-    if not claim_input or not claim_input.strip():
-        return None
-
-    # Fallback if imports fail
-    if not PIPELINE_AVAILABLE:
-        return _mock_verification_payload(claim_input)
-
-    try:
-        # Extract claims using handler
-        extract_event = {"user_text": claim_input}
-        extract_res = handler_extract_claims.handler(extract_event, None)
-        extracted_claims = extract_res.get("body", [])
-
-        if not extracted_claims:
-            return {
-                "rating": "Unclear",
-                "reasoning": "No verifiable external claims extracted from the submitted text.",
-                "sources": []
-            }
-
-        # Verify extracted claims against target
-        verify_event = {
-            "body": extracted_claims,
-            "site": url_input if url_input else "https://fullfact.org",
-            "source_name": "Full Fact"
-        }
-        verify_res = handler_verify_claim.handler(verify_event, None)
-        results = verify_res.get("body", [])
-
-        if not results:
-            return {
-                "rating": "Unclear",
-                "reasoning": "Verification engine returned no matching article results.",
-                "sources": []
-            }
-
-        # Format response for Streamlit UI
-        first_result = results[0]
-        return {
-            "rating": first_result.get("verdict", "Unclear"),
-            "reasoning": first_result.get("explanation", "Reasoning generated via LLM verification."),
-            "sources": [
-                {
-                    "name": res.get("source_name", "Fact Check Partner"),
-                    "snippet": res.get("claim", claim_input)
-                }
-                for res in results
-            ]
-        }
-    except Exception as err:
-        # Return fallback on runtime errors (e.g. missing API keys in .env)
-        return _mock_verification_payload(claim_input, error_msg=str(err))
+    return _mock_verification_payload(claim_input)
 
 
-def _mock_verification_payload(claim_input: str, error_msg: str = "") -> list:
+def _mock_verification_payload(claim_input: str) -> list:
     """Fallback list payload referencing only BBC Verify, Reuters, Full Fact, and Wikipedia."""
 
     return [
@@ -192,31 +122,6 @@ def _mock_verification_payload(claim_input: str, error_msg: str = "") -> list:
             "sources": [
                 {"name": "Wikipedia", "snippet": "Central bank monetary policy history shows steady benchmark rate adjustments without emergency intervention."}
             ]
-        }
-    ]
-
-
-def get_breaking_claims() -> list:
-    """Retrieve recent claims indexed from primary fact-checking outlets."""
-
-    return [
-        {
-            "time": "10m ago",
-            "outlet": "BBC Verify",
-            "title": "Claim regarding central bank emergency interest rate cuts",
-            "status": "Contradicted"
-        },
-        {
-            "time": "45m ago",
-            "outlet": "Full Fact",
-            "title": "Statistics on regional hospital waiting times in shared image",
-            "status": "Missing Context"
-        },
-        {
-            "time": "2h ago",
-            "outlet": "Reuters",
-            "title": "Government announcement on renewable energy subsidies",
-            "status": "Supported"
         }
     ]
 
