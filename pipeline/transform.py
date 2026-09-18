@@ -1,6 +1,7 @@
 """Clean and validate claim/verdict records before load."""
 
 import logging
+from collections import Counter
 import pandas as pd
 
 logger = logging.getLogger(__name__)
@@ -91,71 +92,83 @@ def clean_tag_list(tags, exclude: list[str] = None) -> list[str]:
     return sort_tags(filtered)
 
 
-def ensure_column(df: pd.DataFrame, column: str, default):
-    """Add column with default if missing."""
-    if column not in df.columns:
-        logger.warning("Column %r missing from records, defaulting to %r", column, default)
-        df[column] = [default() for _ in range(len(df))] if callable(default) else default
-    return df
+def clean_verdict(verdict: dict) -> dict:
+    """Clean one individual per-source verdict dict."""
+    return {
+        "claim": clean_text_value(verdict.get("claim")),
+        "verdict": clean_categorical_value(verdict.get("verdict"), VERDICTS),
+        "reasoning": clean_text_value(verdict.get("reasoning")),
+        "technique": clean_categorical_value(
+            verdict.get("misinformation_type") or verdict.get("technique"), TECHNIQUE_TAGS
+        ),
+        "entities": dedupe_list(clean_list_value(verdict.get("entities"))),
+        "tags": clean_tag_list(verdict.get("tags"), exclude=["fact-checking"]),
+        "sources": clean_list_value(verdict.get("sources")),
+        "source_name": clean_text_value(verdict.get("source_name")),
+    }
 
 
-def transform(records: list[dict]) -> pd.DataFrame:
-    """Clean every column of a list of raw handler_verify_claim.py records."""
-    logger.info("Transforming %d records", len(records))
-    df = pd.DataFrame(records)
-    if df.empty:
-        logger.warning("No records to transform")
-        return df
+def resolve_overall_verdict(cleaned_verdicts: list[dict]) -> str:
+    """Majority vote across individual verdicts; falls back on tie or no data."""
+    votes = [v["verdict"] for v in cleaned_verdicts if v["verdict"] != "unknown"]
+    if not votes:
+        return "unclear / not enough evidence"
+    counts = Counter(votes)
+    top_count = max(counts.values())
+    winners = [v for v, c in counts.items() if c == top_count]
+    if len(winners) > 1:
+        return "unclear / not enough evidence"
+    return winners[0]
 
-    if "reasoning" in df.columns:
-        df = df.rename(columns={"reasoning": "source_reasoning"})
 
-    if "misinformation_type" in df.columns:
-        if "technique" in df.columns:
-            df["technique"] = df["technique"].combine_first(df["misinformation_type"])
-            df = df.drop(columns=["misinformation_type"])
-        else:
-            df = df.rename(columns={"misinformation_type": "technique"})
+def transform(combined: dict) -> pd.DataFrame:
+    """Clean handler_collate_results.py's claim-keyed output into one row per claim."""
+    logger.info("Transforming %d claims", len(combined))
+    if not combined:
+        logger.warning("No claims to transform")
+        return pd.DataFrame()
 
-    for column in ["claim", "source_reasoning", "summary", "similar_claim"]:
-        df = ensure_column(df, column, "")
-        df[column] = df[column].apply(clean_text_value)
+    rows = []
+    for claim_text, data in combined.items():
+        raw_verdicts = clean_list_value(data.get("verdicts"))
+        cleaned_verdicts = [clean_verdict(v) for v in raw_verdicts]
+        summary = data.get("summary") or {}
 
-    df = ensure_column(df, "similarity", None)
-    df["similarity"] = df["similarity"].apply(clean_float_value)
+        rows.append({
+            "claim": clean_text_value(claim_text),
+            "verdict": resolve_overall_verdict(cleaned_verdicts),
+            "summary": clean_text_value(summary.get("summary")),
+            "confidence_score": clean_float_value(summary.get("confidence_score")),
+            "technique": clean_categorical_value(summary.get("misinformation_type"), TECHNIQUE_TAGS),
+            "entities": tuple(dedupe_list(clean_list_value(summary.get("entities")))),
+            "tags": tuple(clean_tag_list(summary.get("tags"), exclude=["fact-checking"])),
+            "sources": tuple(clean_list_value(summary.get("sources"))),
+            "individual_verdicts": cleaned_verdicts,
+        })
 
-    df = ensure_column(df, "entities", list)
-    df["entities"] = df["entities"].apply(clean_list_value).apply(dedupe_list)
-    df["entities"] = df["entities"].apply(lambda e: tuple(e) if isinstance(e, list) else e)
-
-    df = ensure_column(df, "verdict", None)
-    df["verdict"] = df["verdict"].apply(lambda v: clean_categorical_value(v, VERDICTS))
-
-    df = ensure_column(df, "technique", None)
-    df["technique"] = df["technique"].apply(lambda v: clean_categorical_value(v, TECHNIQUE_TAGS))
-
-    df = ensure_column(df, "tags", list)
-    df["tags"] = df["tags"].apply(lambda t: clean_tag_list(t, exclude=["fact-checking"]))
-    df["tags"] = df["tags"].apply(lambda t: tuple(t) if isinstance(t, list) else t)
-
-    df = ensure_column(df, "sources", list)
-    df["sources"] = df["sources"].apply(clean_list_value)
-    df["sources"] = df["sources"].apply(lambda s: tuple(s) if isinstance(s, list) else s)
-
-    df = ensure_column(df, "source_name", "")
-    df["source_name"] = df["source_name"].apply(clean_text_value)
-
-    logger.info("Finished transforming %d records", len(df))
+    df = pd.DataFrame(rows)
+    logger.info("Finished transforming %d claims", len(df))
     return df
 
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    demo_records = [
-        {"claim": "Example claim.", "verdict": "Supported", "reasoning": "Example.",
-         "misinformation_type": "None", "entities": [], "tags": [], "sources": [],
-         "source_name": "Example Source"},
-        {"claim": "Cached claim.", "similar_claim": "A similar claim.", "similarity": 0.94,
-         "verdict": "Contradicted", "summary": "Cached claim-level summary.", "technique": "None"},
-    ]
-    print(transform(demo_records).to_string())
+    demo_combined = {
+        "The Eiffel Tower was built in 1822.": {
+            "verdicts": [
+                {"claim": "The Eiffel Tower was built in 1822.", "verdict": "Contradicted",
+                 "reasoning": "It was completed in 1889.", "misinformation_type": "None",
+                 "entities": ["Eiffel Tower"], "tags": ["History"], "sources": ["https://fullfact.org/x"],
+                 "source_name": "Full Fact"},
+            ],
+            "summary": {
+                "summary": "Sources agree it was 1889, not 1822.",
+                "confidence_score": 0.95,
+                "misinformation_type": "None",
+                "entities": ["Eiffel Tower"],
+                "tags": ["History Revisionism"],
+                "sources": ["https://fullfact.org/x"],
+            },
+        }
+    }
+    print(transform(demo_combined).to_string())
