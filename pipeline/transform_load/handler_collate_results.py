@@ -12,6 +12,7 @@ def handler(event, context):
     summaries = generate_summary(results)
 
     combined = {}
+    # Outputs a dict in the form: {claim: {"individual_verdicts": [...], "summary": ...}, claim2: {"individual_verdicts": [...], "summary": ...}}
     for claim_text, verdicts in results.items():
         combined[claim_text] = {
             "verdicts": verdicts,
