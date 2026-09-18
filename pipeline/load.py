@@ -200,7 +200,9 @@ def format_claim_source_insert(claim_sources: dict) -> list[tuple]:
 def main_claim_insertion_function(conn: connection, data: pd.DataFrame) -> dict:
     """Inserts claim data and returns a dictionary with the claim and claim_id mapping"""
     verdict_map = get_verdict_mapping(conn)
+    logging.info("Successfully retrieved verdict mapping")
     technique_map = get_technique_mapping(conn)
+    logging.info("Successfully retrieved technique mapping")
 
     claims = data[['claim', 'verdict', 'technique', 'summary',
                    'claim_url', "claim_embedding"]].drop_duplicates(subset='claim')
@@ -213,6 +215,7 @@ def main_claim_insertion_function(conn: connection, data: pd.DataFrame) -> dict:
 def main_claim_tags_insertion_function(conn: connection, data: pd.DataFrame) -> None:
     """Inserts the claim tag pairing int the database"""
     tag_map = get_tag_mapping(conn)
+    logging.info("Successfully retrieved tags mapping")
 
     claim_tags = data[['claim_id', 'tags']].drop_duplicates()
     claim_tags["tags_id"] = claim_tags["tags"].apply(
@@ -227,6 +230,7 @@ def main_claim_tags_insertion_function(conn: connection, data: pd.DataFrame) -> 
 def main_source_insertion_function(conn: connection, data: pd.DataFrame) -> dict:
     """Inserts source data and returns the dictionary mapping the source to its id"""
     outlet_map = get_outlet_mapping(conn)
+    logging.info("Successfully retrieved outlet mapping")
 
     sources = data[['sources', 'source_name',
                     'source_reasoning']].to_dict(orient='records')
