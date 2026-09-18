@@ -7,11 +7,11 @@ from dotenv import load_dotenv
 from summary_models import SummaryResult
 
 
-def handler(event, context) -> dict:
+def aggregate_verdicts(claims) -> dict:
     """Pivot per-source verdict lists into a claim-keyed structure."""
     grouped = {}
 
-    for branch_output in event:
+    for branch_output in claims:
         for verdict in branch_output["body"]:
             claim_text = verdict["claim"]
             grouped.setdefault(claim_text, []).append(verdict)
@@ -28,7 +28,7 @@ def generate_summary(claims: list[dict]) -> SummaryResult:
     client = OpenAI(api_key=os.environ["OPENAI_API_KEY"],
                     base_url=os.environ["OPENAI_BASE_URL"])
 
-    grouped_claims = handler(claims, None)["body"]
+    grouped_claims = aggregate_verdicts(claims)["body"]
 
     summaries = {}
 
@@ -42,12 +42,13 @@ def generate_summary(claims: list[dict]) -> SummaryResult:
         in a way that is easy to read and understand. The 'reasoning' and 'verdict' fields should be used to inform the summary, but the
         summary should not simply repeat these fields verbatim. You should also include a 'confidence score' for the summary as a number
         between 0 and 1 which indicates the agreement level between the different sources. Verdicts that are 'Unclear / Not enough evidence' should
-        be treated as neutral and not contribute to the confidence score.:
+        reduce confidence, however not as significantly as directly contradicting verdicts. Only when all sources agree should the confidence score be
+        over 0.9.:
 
         {outlet_claims}
         """
 
-        response = client.chat.completions.create(
+        response = client.chat.completions.parse(
             model="gpt-5.6-luna",
             messages=[
                 {
@@ -58,6 +59,6 @@ def generate_summary(claims: list[dict]) -> SummaryResult:
             ],
             response_format=SummaryResult)
 
-        summaries[0] = response.choices[0].message.parsed.model_dump()
+        summaries[key] = response.choices[0].message.parsed.model_dump()
 
     return summaries
