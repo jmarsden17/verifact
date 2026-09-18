@@ -24,13 +24,12 @@ CREATE TABLE technique (
 CREATE TABLE claim (
     claim_id INT GENERATED ALWAYS AS IDENTITY,
     claim TEXT NOT NULL,
-    claim_url TEXT DEFAULT NULL,
     publish_datetime TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     access_datetime TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     verdict_id INT NOT NULL,
     technique_id INT NOT NULL,
     summary TEXT NOT NULL,
-    claim_embedding VECTOR NOT NULL,
+    claim_embedding VECTOR(1536) NOT NULL,
     confidence_score FLOAT NOT NULL, 
     PRIMARY KEY(claim_id),
     FOREIGN KEY(verdict_id) REFERENCES verdict(verdict_id),
@@ -70,8 +69,7 @@ CREATE TABLE source (
     source_reasoning TEXT NOT NULL,
     outlet_id INT NOT NULL,
     PRIMARY KEY(source_id),
-    FOREIGN KEY(outlet_id) REFERENCES outlet(outlet_id),
-    UNIQUE (source_url, source_reasoning, outlet_id)
+    FOREIGN KEY(outlet_id) REFERENCES outlet(outlet_id)
 );
 
 CREATE TABLE claim_source (

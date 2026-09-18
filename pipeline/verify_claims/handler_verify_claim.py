@@ -9,7 +9,7 @@ def handler(event, context):
     """Handler to verify a claim against an article from a specified fact check site."""
     load_dotenv()
 
-    claims_data = event["claims"]
+    claims_data = event["body"]
     source_url = event.get("source_url", "")
     source_name = event.get("source_name", "")
 
@@ -23,7 +23,7 @@ def handler(event, context):
                 "similarity": claim_item.get("similarity"),
                 "verdict": claim_item.get("verdict"),
                 "summary": claim_item.get("summary"),
-                "technique": claim_item.get("technique"),
+                "technique": claim_item.get("technique")
             }
             results.append(verdict)
             continue
@@ -41,12 +41,14 @@ def handler(event, context):
                     "tags": [],
                     "sources": [],
                     "source_name": source_name,
+                    "claim_embedding": claim_item.get('embedding')
                 }
             else:
                 verdict = compare_claims_with_article(claim, extracted_article)
                 verdict["sources"] = urls
                 verdict["claim"] = claim
                 verdict["source_name"] = source_name
+                verdict['claim_embedding'] = claim_item.get('embedding')
 
             results.append(verdict)
         except Exception as e:
@@ -59,6 +61,7 @@ def handler(event, context):
                 "tags": [],
                 "sources": [],
                 "source_name": source_name,
+                "claim_embeddding": claim_item.get('embedding')
             }
             results.append(verdict)
 
