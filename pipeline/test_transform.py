@@ -225,9 +225,12 @@ def test_transform_produces_clean_dataframe_for_normal_branch():
     assert row["verdict"] == "contradicted"
     assert row["source_reasoning"] == "It's actually in Paris."
     assert row["technique"] == "misleading context"
-    assert row["entities"] == ["Eiffel Tower", "London"]
-    assert row["tags"] == ["Europe"]
-    assert row["sources"] == ["https://fullfact.org/x"]
+    assert row["entities"] == ("Eiffel Tower", "London")
+    assert isinstance(row["entities"], tuple)
+    assert row["tags"] == ("Europe",)
+    assert isinstance(row["tags"], tuple)
+    assert row["sources"] == ("https://fullfact.org/x",)
+    assert isinstance(row["sources"], tuple)
     assert row["source_name"] == "Full Fact"
     assert row["summary"] == ""
     assert row["similar_claim"] == ""

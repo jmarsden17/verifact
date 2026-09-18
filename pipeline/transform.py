@@ -126,6 +126,7 @@ def transform(records: list[dict]) -> pd.DataFrame:
 
     df = ensure_column(df, "entities", list)
     df["entities"] = df["entities"].apply(clean_list_value).apply(dedupe_list)
+    df["entities"] = df["entities"].apply(lambda e: tuple(e) if isinstance(e, list) else e)
 
     df = ensure_column(df, "verdict", None)
     df["verdict"] = df["verdict"].apply(lambda v: clean_categorical_value(v, VERDICTS))
@@ -135,9 +136,11 @@ def transform(records: list[dict]) -> pd.DataFrame:
 
     df = ensure_column(df, "tags", list)
     df["tags"] = df["tags"].apply(lambda t: clean_tag_list(t, exclude=["fact-checking"]))
+    df["tags"] = df["tags"].apply(lambda t: tuple(t) if isinstance(t, list) else t)
 
     df = ensure_column(df, "sources", list)
     df["sources"] = df["sources"].apply(clean_list_value)
+    df["sources"] = df["sources"].apply(lambda s: tuple(s) if isinstance(s, list) else s)
 
     df = ensure_column(df, "source_name", "")
     df["source_name"] = df["source_name"].apply(clean_text_value)
