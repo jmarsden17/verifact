@@ -1,6 +1,6 @@
 """Tests for transform script."""
 
-from pipeline.transform_load.transform import (
+from transform_load.transform import (
     clean_categorical_list,
     clean_categorical_value,
     clean_float_value,
@@ -13,8 +13,8 @@ from pipeline.transform_load.transform import (
     transform,
 )
 
-VERDICTS = ["supported", "contradicted",
-            "mixed / missing context", "unclear / not enough evidence"]
+VERDICTS = ["Supported", "Contradicted",
+            "Mixed / Missing Context", "Unclear / Not enough evidence"]
 TECHNIQUES = ["Deepfake", "Misleading Context", "None"]
 TOPICS = ["Europe", "Media Journalism", "Technology"]
 
@@ -124,9 +124,9 @@ def test_filter_tags_defaults_to_no_exclusions():
     assert result == ["economy", "inflation"]
 
 
-def test_clean_categorical_value_keeps_valid_value():
-    """A valid value is returned lowercased."""
-    assert clean_categorical_value("supported", VERDICTS) == "supported"
+def test_clean_categorical_value_keeps_real_casing():
+    """A valid value is returned in its real (allowed-list) casing, not lowercased."""
+    assert clean_categorical_value("supported", VERDICTS) == "Supported"
 
 
 def test_clean_categorical_value_converts_invalid_value_to_unknown():
@@ -140,8 +140,8 @@ def test_clean_categorical_value_converts_none_to_unknown():
 
 
 def test_clean_categorical_value_is_case_insensitive():
-    """Matching against the allowed list ignores casing."""
-    assert clean_categorical_value("Contradicted", VERDICTS) == "contradicted"
+    """Matching against the allowed list ignores input casing, but returns the allowed list's own casing."""
+    assert clean_categorical_value("Contradicted".lower(), VERDICTS) == "Contradicted"
 
 
 def test_clean_categorical_list_keeps_only_allowed_values():
@@ -219,6 +219,7 @@ def test_transform_produces_clean_dataframe_for_normal_branch():
             "tags": ["fact-checking", "Europe", "Nonsense Tag"],
             "sources": ["https://fullfact.org/x"],
             "source_name": "  Full Fact  ",
+            "confidence_score": 0.8,
         }
     ]
 
@@ -226,19 +227,22 @@ def test_transform_produces_clean_dataframe_for_normal_branch():
 
     row = df.iloc[0]
     assert row["claim"] == "The Eiffel Tower is in London."
-    assert row["verdict"] == "contradicted"
+    assert row["verdict"] == "Contradicted"
     assert row["source_reasoning"] == "It's actually in Paris."
-    assert row["technique"] == "misleading context"
+    assert row["technique"] == "Misleading Context"
     assert row["entities"] == ("Eiffel Tower", "London")
     assert isinstance(row["entities"], tuple)
     assert row["tags"] == ("Europe",)
     assert isinstance(row["tags"], tuple)
-    assert row["sources"] == ("https://fullfact.org/x",)
-    assert isinstance(row["sources"], tuple)
+    assert row["sources"] == "https://fullfact.org/x"
+    assert not isinstance(row["sources"], (list, tuple))
     assert row["source_name"] == "Full Fact"
     assert row["summary"] == ""
     assert row["similar_claim"] == ""
     assert row["similarity"] is None
+    assert row["confidence_score"] == 0.8
+    assert row["claim_url"] is None
+    assert row["claim_embedding"] is None
 
 
 def test_transform_handles_invalid_technique():
@@ -277,15 +281,15 @@ def test_transform_produces_clean_dataframe_for_skip_etl_branch():
 
     row = df.iloc[0]
     assert row["claim"] == "The Eiffel Tower was built in 1889."
-    assert row["verdict"] == "supported"
+    assert row["verdict"] == "Supported"
     assert row["summary"] == "Confirmed by a previous check."
-    assert row["technique"] == "none"
+    assert row["technique"] == "None"
     assert row["similar_claim"] == "The Eiffel Tower was completed in 1889."
     assert row["similarity"] == 0.97
     assert row["source_reasoning"] == ""
     assert not row["entities"]
     assert not row["tags"]
-    assert not row["sources"]
+    assert row["sources"] is None
 
 
 def test_transform_handles_mixed_batch_without_crashing():
@@ -315,9 +319,24 @@ def test_transform_handles_mixed_batch_without_crashing():
 
     assert not df.columns.duplicated().any()
     assert df.iloc[0]["source_reasoning"] == "Per this source, false."
-    assert df.iloc[0]["technique"] == "deepfake"
+    assert df.iloc[0]["technique"] == "Deepfake"
     assert df.iloc[1]["summary"] == "Overall summary from prior check."
-    assert df.iloc[1]["technique"] == "none"
+    assert df.iloc[1]["technique"] == "None"
+
+
+def test_transform_adds_claim_url_embedding_confidence_columns_when_missing():
+    """claim_url, claim_embedding, confidence_score exist even when not in the input records."""
+    records = [{"claim": "A", "verdict": "Supported", "reasoning": "x",
+                "misinformation_type": "None", "entities": [], "tags": [], "sources": []}]
+
+    df = transform(records)
+
+    assert "claim_url" in df.columns
+    assert "claim_embedding" in df.columns
+    assert "confidence_score" in df.columns
+    assert df.iloc[0]["claim_url"] is None
+    assert df.iloc[0]["claim_embedding"] is None
+    assert df.iloc[0]["confidence_score"] is None
 
 
 def test_transform_handles_empty_list():
