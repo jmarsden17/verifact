@@ -197,8 +197,8 @@ def test_transform_produces_clean_dataframe():
     row = df.iloc[0]
     assert row["claim"] == "The Eiffel Tower is in London."
     assert row["verdict"] == "contradicted"
-    assert row["reasoning"] == "It's actually in Paris."
-    assert row["misinformation_type"] == "misleading context"
+    assert row["summary"] == "It's actually in Paris."
+    assert row["technique"] == "misleading context"
     assert row["entities"] == ["Eiffel Tower", "London"]
     assert row["tags"] == ["Europe"]
     assert row["sources"] == ["https://fullfact.org/x"]
@@ -206,7 +206,7 @@ def test_transform_produces_clean_dataframe():
 
 
 def test_transform_handles_invalid_misinformation_type():
-    """An unrecognised misinformation_type becomes 'unknown'."""
+    """An unrecognised technique becomes 'unknown'."""
     records = [
         {
             "claim": "Example.",
@@ -221,18 +221,18 @@ def test_transform_handles_invalid_misinformation_type():
 
     df = transform(records)
 
-    assert df.iloc[0]["misinformation_type"] == "unknown"
+    assert df.iloc[0]["technique"] == "unknown"
 
 
 def test_transform_handles_skip_etl_shaped_record_without_crashing():
-    """A skip_etl record doesn't crash transform(), though missing columns fall back to empty/'unknown'."""
+    """A skip_etl record doesn't crash transform(), and its native summary/technique columns get cleaned."""
     records = [
         {
             "claim": "The Eiffel Tower was built in 1889.",
             "similar_claim": "The Eiffel Tower was completed in 1889.",
             "similarity": 0.97,
             "verdict": "Supported",
-            "summary": "Confirmed by a previous check.",
+            "summary": "  Confirmed by a previous check.  ",
             "technique": "None",
         }
     ]
@@ -242,8 +242,8 @@ def test_transform_handles_skip_etl_shaped_record_without_crashing():
     row = df.iloc[0]
     assert row["claim"] == "The Eiffel Tower was built in 1889."
     assert row["verdict"] == "supported"
-    assert row["reasoning"] == ""
-    assert row["misinformation_type"] == "unknown"
+    assert row["summary"] == "Confirmed by a previous check."
+    assert row["technique"] == "none"
     assert not row["entities"]
     assert not row["tags"]
     assert not row["sources"]

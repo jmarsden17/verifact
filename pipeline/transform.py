@@ -79,7 +79,9 @@ def transform(records: list[dict]) -> pd.DataFrame:
         logger.warning("No records to transform")
         return df
 
-    for column in ["claim", "reasoning"]:
+    df = df.rename(columns={"reasoning": "summary", "misinformation_type": "technique"})
+
+    for column in ["claim", "summary"]:
         if column not in df.columns:
             logger.warning("Column %r missing from records, defaulting to ''", column)
             df[column] = ""
@@ -95,13 +97,12 @@ def transform(records: list[dict]) -> pd.DataFrame:
         df["verdict"] = None
     df["verdict"] = df["verdict"].apply(lambda v: clean_categorical_value(v, VERDICTS))
 
-    if "misinformation_type" not in df.columns:
-        logger.warning("Column 'misinformation_type' missing from records, defaulting to None")
-        df["misinformation_type"] = None
-    df["misinformation_type"] = df["misinformation_type"].apply(
+    if "technique" not in df.columns:
+        logger.warning("Column 'technique' missing from records, defaulting to None")
+        df["technique"] = None
+    df["technique"] = df["technique"].apply(
         lambda v: clean_categorical_value(v, TECHNIQUE_TAGS)
     )
-
     if "tags" not in df.columns:
         logger.warning("Column 'tags' missing from records, defaulting to []")
         df["tags"] = [[] for _ in range(len(df))]
@@ -119,7 +120,7 @@ def transform(records: list[dict]) -> pd.DataFrame:
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     demo_records = [{"claim": "Example claim.", "verdict": "Supported",
-                      "reasoning": "Example.", "entities": [],
-                      "misinformation_type": "None", "tags": [],
+                      "summary": "Example.", "entities": [],
+                      "technique": "None", "tags": [],
                       "sources": [], "source_name": "Example Source"}]
     print(transform(demo_records))
