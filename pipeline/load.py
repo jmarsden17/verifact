@@ -197,10 +197,53 @@ def format_claim_source_insert(claim_sources: dict) -> list[tuple]:
     return formatted_insert
 
 
+def main_claim_insertion_function(conn: connection, data: pd.DataFrame) -> dict:
+    """Inserts claim data and returns a dictionary with the claim and claim_id mapping"""
+    verdict_map = get_verdict_mapping(conn)
+    technique_map = get_technique_mapping(conn)
+
+    claims = data[['claim', 'verdict', 'technique', 'summary',
+                   'claim_url', "claim_embedding"]].drop_duplicates(subset='claim')
+    claims = claims.to_dict(orient='records')
+
+    formatted_claims = format_claim_insert(claims, verdict_map, technique_map)
+    return add_claims_to_database(conn, formatted_claims)
+
+
+def main_claim_tags_insertion_function(conn: connection, data: pd.DataFrame) -> None:
+    """Inserts the claim tag pairing int the database"""
+    tag_map = get_tag_mapping(conn)
+
+    claim_tags = data[['claim_id', 'tags']].drop_duplicates()
+    claim_tags["tags_id"] = claim_tags["tags"].apply(
+        lambda tags: [tag_map[tag] for tag in tags]
+    )
+    claim_tags_dict = claim_tags.to_dict(orient='records')
+
+    formatted_claim_tags = format_claim_tags_insert(claim_tags_dict)
+    add_claim_tags_to_database(conn, formatted_claim_tags)
+
+
+def main_source_insertion_function(conn: connection, data: pd.DataFrame) -> dict:
+    """Inserts source data and returns the dictionary mapping the source to its id"""
+    outlet_map = get_outlet_mapping(conn)
+
+    sources = data[['sources', 'source_name',
+                    'source_reasoning']].to_dict(orient='records')
+
+    formatted_sources = format_sources_insert(sources, outlet_map)
+    return add_source_to_database(conn, formatted_sources)
+
+
+def main_claim_source_insertion_function(conn: connection, data: pd.DataFrame) -> None:
+    """Inserts the source and claim pairing into the database"""
+    claim_source = data[['claim_id', 'source_id']].to_dict(orient='records')
+    formatted_claim_source = format_claim_source_insert(claim_source)
+    add_claim_source_to_database(conn, formatted_claim_source)
+
+
 def handler(event=None, context=None) -> dict:
-    """
-    Main handler function for Lambda
-    """
+    """Main handler function for Lambda"""
 
     # Set up:
     logging.basicConfig(level=logging.INFO)
@@ -212,50 +255,53 @@ def handler(event=None, context=None) -> dict:
         raise SystemExit(1)
     logging.info("Successfully connected to the database")
 
-    # Get dictionary mappings:
-    tag_map = get_tag_mapping(conn)
-    verdict_map = get_verdict_mapping(conn)
-    technique_map = get_technique_mapping(conn)
-    outlet_map = get_outlet_mapping(conn)
-    logging.info("Successfully extracted all the relevant mappings")
-
     # TODO: Get data from transform:
-    data = pd.DataFrame()
+    data = pd.DataFrame([
+        {
+            "claim": "The moon is made of green cheese.",
+            "claim_url": "https://example.com/moon-cheese",
+            "verdict": "Supported",
+            "technique": "None",
+            "summary": "Debunking the celestial dairy claim.",
+            "claim_embedding": [0.12, -0.45, 0.89],
+            "tags": ("Military", "Terrorism"),
+            "sources": "https://example.com/source1",
+            "source_name": "BBC Verify",
+            "source_reasoning": "Scientific consensus refutes this."
+        },
+        {
+            "claim": "The moon is made of green cheese.",
+            "claim_url": "https://example.com/moon-cheese",
+            "verdict": "Supported",
+            "technique": "None",
+            "summary": "Debunking the celestial dairy claim.",
+            "claim_embedding": [0.12, -0.45, 0.89],
+            "tags": ("Military", "Terrorism"),
+            "sources": "https://example.com/source2",
+            "source_name": "Reuters Fact Check",
+            "source_reasoning": "Empirical physics standard."
+        }
+    ])
     logging.info("Received data from transform")
 
     # Insert into claim table:
-    claims = data[['claim', 'verdict', 'technique', 'summary',
-                   'claim_url', "claim_embedding"]].drop_duplicates(subset='claim')
-    claims = claims.to_dict(orient='records')
-    formatted_claims = format_claim_insert(claims, verdict_map, technique_map)
-    claim_map = add_claims_to_database(conn, formatted_claims)
+    claim_map = main_claim_insertion_function(conn, data)
     logging.info("Successfully added claims to database")
 
     data['claim_id'] = data['claim'].map(claim_map)
 
-    # Insert into tags table
-    claim_tags = data[['claim_id', 'tags']].drop_duplicates()
-    claim_tags["tags_id"] = claim_tags["tags"].apply(
-        lambda tags: [tag_map[tag] for tag in tags]
-    )
-    claim_tags_dict = claim_tags.to_dict(orient='records')
-    formatted_claim_tags = format_claim_tags_insert(claim_tags_dict)
-    add_claim_tags_to_database(conn, formatted_claim_tags)
+    # Insert into claim_tags table
+    main_claim_tags_insertion_function(conn, data)
     logging.info("Successfully added claim_tags to database")
 
     # Insert into source table:
-    sources = data[['sources', 'source_name',
-                    'source_reasoning']].to_dict(orient='records')
-    formatted_sources = format_sources_insert(sources, outlet_map)
-    source_map = add_source_to_database(conn, formatted_sources)
+    source_map = main_source_insertion_function(conn, data)
     logging.info("Successfully added source to database")
 
     data['source_id'] = data['sources'].map(source_map)
 
     # Insert into claim_source table:
-    claim_source = data[['claim_id', 'source_id']].to_dict(orient='records')
-    formatted_claim_source = format_claim_source_insert(claim_source)
-    add_claim_source_to_database(conn, formatted_claim_source)
+    main_claim_source_insertion_function(conn, data)
     logging.info("Successfully added claim_source to database")
 
     return data.to_dict(orient='records')
