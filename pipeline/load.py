@@ -82,8 +82,6 @@ def add_claims_to_database(conn: connection, data: list[tuple]) -> dict:
             INSERT INTO claim (
                 claim, 
                 claim_url, 
-                publish_datetime, 
-                access_datetime, 
                 verdict_id, 
                 technique_id, 
                 summary, 
@@ -95,9 +93,10 @@ def add_claims_to_database(conn: connection, data: list[tuple]) -> dict:
             RETURNING claim, claim_id;
         """
 
-        rows = execute_values(cursor, query, data, fetchall=True)
+        execute_values(cursor, query, data)
+        rows = cursor.fetchall()
         conn.commit()
-    return dict(rows)
+    return {row["claim"]: row["claim_id"] for row in rows}
 
 
 def add_claim_tags_to_database(conn: connection, data: list[tuple]) -> None:
@@ -122,12 +121,15 @@ def add_source_to_database(conn: connection, data: list[tuple]) -> list[int]:
             INSERT INTO source
                 (source_url, source_reasoning, outlet_id)
             VALUES %s
-            RETURNING source, source_id;;
+            ON CONFLICT (source_url, source_reasoning, outlet_id)
+            DO NOTHING
+            RETURNING source_url, source_id;;
         """
 
-        rows = execute_values(cursor, query, data, fetchall=True)
+        execute_values(cursor, query, data)
+        rows = cursor.fetchall()
         conn.commit()
-    return dict(rows)
+    return {row["source_url"]: row["source_id"] for row in rows}
 
 
 def add_claim_source_to_database(conn: connection, data: list[tuple]) -> None:
@@ -154,7 +156,8 @@ def format_claim_insert(claims: dict, verdicts: dict, techniques: dict) -> list[
             claim['claim_url'],
             verdicts[claim['verdict']],
             techniques[claim['technique']],
-            claim['summary']
+            claim['summary'],
+            claim['claim_embedding']
         ))
     return formatted_tuple
 
@@ -165,7 +168,8 @@ def format_claim_tags_insert(claim_tags: list[dict]) -> list[tuple]:
     for item in claim_tags:
         for id in item['tags_id']:
             formatted_insert.append((
-                item['claims'], id
+                int(item['claim_id']),
+                int(id)
             ))
     return formatted_insert
 
@@ -176,9 +180,10 @@ def format_sources_insert(sources: list[dict], outlets) -> list[tuple]:
     for source in sources:
         formatted_sources.append((
             source['sources'],
-            source['source_reasoning']
+            source['source_reasoning'],
             outlets[source['source_name']]
         ))
+    return formatted_sources
 
 
 def format_claim_source_insert(claim_sources: dict) -> list[tuple]:
@@ -186,13 +191,13 @@ def format_claim_source_insert(claim_sources: dict) -> list[tuple]:
     formatted_insert = []
     for item in claim_sources:
         formatted_insert.append((
-            item['claim_id'],
-            item['source_id']
+            int(item['claim_id']),
+            int(item['source_id'])
         ))
     return formatted_insert
 
 
-def handler(event=None, context=None):
+def handler(event=None, context=None) -> dict:
 
     # Set up:
     logging.basicConfig(level=logging.INFO)
@@ -216,11 +221,11 @@ def handler(event=None, context=None):
     logging.info("Received data from transform")
 
     # Insert into claim table:
-    claims = data[['claim', 'verdict',
-                   'technique', 'summary']].drop_duplicates()
+    claims = data[['claim', 'verdict', 'technique', 'summary',
+                   'claim_url', "claim_embedding"]].drop_duplicates(subset='claim')
     claims = claims.to_dict(orient='records')
-    formatted_claims = format_claim_insert(claims)
-    claim_map = add_claims_to_database(claims)
+    formatted_claims = format_claim_insert(claims, verdict_map, technique_map)
+    claim_map = add_claims_to_database(conn, formatted_claims)
     logging.info("Successfully added claims to database")
 
     data['claim_id'] = data['claim'].map(claim_map)
@@ -232,13 +237,14 @@ def handler(event=None, context=None):
     )
     claim_tags_dict = claim_tags.to_dict(orient='records')
     formatted_claim_tags = format_claim_tags_insert(claim_tags_dict)
-    add_claim_tags_to_database(formatted_claim_tags)
+    add_claim_tags_to_database(conn, formatted_claim_tags)
     logging.info("Successfully added claim_tags to database")
 
     # Insert into source table:
-    sources = data[['sources', 'source_name', 'source_reasoning']]
+    sources = data[['sources', 'source_name',
+                    'source_reasoning']].to_dict(orient='records')
     formatted_sources = format_sources_insert(sources, outlet_map)
-    source_map = add_source_to_database(formatted_sources)
+    source_map = add_source_to_database(conn, formatted_sources)
     logging.info("Successfully added source to database")
 
     data['source_id'] = data['sources'].map(source_map)
@@ -246,8 +252,10 @@ def handler(event=None, context=None):
     # Insert into claim_source table:
     claim_source = data[['claim_id', 'source_id']].to_dict(orient='records')
     formatted_claim_source = format_claim_source_insert(claim_source)
-    add_claim_source_to_database(formatted_claim_source)
+    add_claim_source_to_database(conn, formatted_claim_source)
     logging.info("Successfully added claim_source to database")
+
+    return data.to_dict(orient='records')
 
 
 if __name__ == "__main__":
