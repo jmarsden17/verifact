@@ -32,15 +32,15 @@ def find_most_similar_claim(query_embedding):
             cur.execute(
                 """
                 WITH matched_claims AS (
-                    SELECT claim_id, claim, 1 - (claim_embedding <=> %s) AS similarity, verdict_id, summary, technique_id
-                    FROM claims
+                    SELECT claim_id, claim, 1 - (claim_embedding <=> %s::vector) AS similarity, verdict_id, summary, technique_id
+                    FROM claim
 
-                    WHERE 1 - (claim_embedding <=> %s) >= 0.8 
-                    ORDER BY claim_embedding <=> %s
+                    WHERE 1 - (claim_embedding <=> %s::vector) >= 0.8 
+                    ORDER BY claim_embedding <=> %s::vector
                     LIMIT 1
                 ),
                 updated AS (
-                    UPDATE claims
+                    UPDATE claim
                     SET access_datetime = NOW()
                     WHERE claim_id = (SELECT claim_id FROM matched_claims)
                     RETURNING claim_id

@@ -29,7 +29,7 @@ CREATE TABLE claim (
     verdict_id INT NOT NULL,
     technique_id INT NOT NULL,
     summary TEXT NOT NULL,
-    claim_embedding VECTOR NOT NULL,
+    claim_embedding VECTOR(1536) NOT NULL,
     confidence_score FLOAT NOT NULL, 
     PRIMARY KEY(claim_id),
     FOREIGN KEY(verdict_id) REFERENCES verdict(verdict_id),
