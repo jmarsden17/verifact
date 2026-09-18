@@ -153,8 +153,8 @@ def format_claim_insert(claims: dict, verdicts: dict, techniques: dict) -> list[
             claim['claim'],
             claim['claim_url'],
             verdicts[claim['verdict']],
-            techniques[claim['misinformation_type']],
-            claim['reasoning']
+            techniques[claim['technique']],
+            claim['summary']
         ))
     return formatted_tuple
 
@@ -192,7 +192,7 @@ def format_claim_source_insert(claim_sources: dict) -> list[tuple]:
     return formatted_insert
 
 
-if __name__ == "__main__":
+def handler(event=None, context=None):
 
     # Set up:
     logging.basicConfig(level=logging.INFO)
@@ -217,7 +217,7 @@ if __name__ == "__main__":
 
     # Insert into claim table:
     claims = data[['claim', 'verdict',
-                   'misinformation_type', 'reasoning']].drop_duplicates()
+                   'technique', 'summary']].drop_duplicates()
     claims = claims.to_dict(orient='records')
     formatted_claims = format_claim_insert(claims)
     claim_map = add_claims_to_database(claims)
@@ -249,3 +249,8 @@ if __name__ == "__main__":
     formatted_claim_source = format_claim_source_insert(claim_source)
     add_claim_source_to_database(formatted_claim_source)
     logging.info("Successfully added claim_source to database")
+
+
+if __name__ == "__main__":
+
+    handler()
