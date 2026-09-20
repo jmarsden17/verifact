@@ -9,7 +9,6 @@ from psycopg2 import connect, OperationalError
 from psycopg2.extras import RealDictCursor, execute_values
 from psycopg2.extensions import connection
 import pandas as pd
-import pprint
 
 from transform import transform
 from handler_collate_results import combine_main
@@ -273,9 +272,8 @@ def main_claim_source_insertion_function(conn: connection, data: pd.DataFrame) -
     add_claim_source_to_database(conn, formatted_claim_source)
 
 
-def handler(event=None, context=None) -> dict:
-    """Main handler function for Lambda"""
-
+def load(data: pd.DataFrame) -> None:
+    """Loads data into the pipeline"""
     # Set up:
     logging.basicConfig(level=logging.INFO)
     load_dotenv()
@@ -285,6 +283,30 @@ def handler(event=None, context=None) -> dict:
     if conn is None:
         raise SystemExit(1)
     logging.info("Successfully connected to the database")
+
+    # Insert into claim table:
+    claim_map = main_claim_insertion_function(conn, data)
+    logging.info("Successfully added claims to database")
+
+    data['claim_id'] = data['claim'].map(claim_map)
+
+    # Insert into claim_tags table
+    main_claim_tags_insertion_function(conn, data)
+    logging.info("Successfully added claim_tags to database")
+
+    # Insert into source table:
+    source_map = main_source_insertion_function(conn, data)
+    logging.info("Successfully added source to database")
+
+    data['source_id'] = data['sources'].map(source_map)
+
+    # Insert into claim_source table:
+    main_claim_source_insertion_function(conn, data)
+    logging.info("Successfully added claim_source to database")
+
+
+def handler(event=None, context=None) -> dict:
+    """Main handler function for Lambda"""
 
     # Get data from extract:
     list_parallel = [event]
@@ -321,25 +343,8 @@ def handler(event=None, context=None) -> dict:
     # Convert flattened list back to a clean DataFrame for SQL operations
     data = pd.DataFrame(flattened_data)
 
-    # Insert into claim table:
-    claim_map = main_claim_insertion_function(conn, data)
-    logging.info("Successfully added claims to database")
-
-    data['claim_id'] = data['claim'].map(claim_map)
-
-    # Insert into claim_tags table
-    main_claim_tags_insertion_function(conn, data)
-    logging.info("Successfully added claim_tags to database")
-
-    # Insert into source table:
-    source_map = main_source_insertion_function(conn, data)
-    logging.info("Successfully added source to database")
-
-    data['source_id'] = data['sources'].map(source_map)
-
-    # Insert into claim_source table:
-    main_claim_source_insertion_function(conn, data)
-    logging.info("Successfully added claim_source to database")
+    # Loads the data into the RDS
+    load(data)
 
     return {
         "statusCode": 200,
