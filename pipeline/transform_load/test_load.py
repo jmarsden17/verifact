@@ -3,18 +3,55 @@
 """
 Test for load file
 """
-import pylint
+import pytest
 from unittest.mock import MagicMock
 
 from load import (
     get_tag_mapping,
     get_verdict_mapping,
     get_technique_mapping,
-    get_outlet_mapping
+    get_outlet_mapping,
+    format_claim_insert
 )
 
 
-def test_get_tag_mapping():
+@pytest.fixture
+def tag_mapping():
+    return {
+        'tag 1': 1,
+        'tag 2': 2,
+        'tag 3': 3
+    }
+
+
+@pytest.fixture
+def verdict_mapping():
+    return {
+        'verdict 1': 1,
+        'verdict 2': 2,
+        'verdict 3': 3
+    }
+
+
+@pytest.fixture
+def technique_mapping():
+    return {
+        'technique 1': 1,
+        'technique 2': 2,
+        'technique 3': 3
+    }
+
+
+@pytest.fixture
+def outlet_mapping():
+    return {
+        'outlet 1': 1,
+        'outlet 2': 2,
+        'outlet 3': 3
+    }
+
+
+def test_get_tag_mapping(tag_mapping):
     mock_conn = MagicMock()
 
     mock_conn.cursor().__enter__().fetchall.return_value = [
@@ -26,14 +63,10 @@ def test_get_tag_mapping():
     result = get_tag_mapping(mock_conn)
 
     assert isinstance(result, dict)
-    assert result == {
-        'tag 1': 1,
-        'tag 2': 2,
-        'tag 3': 3
-    }
+    assert result == tag_mapping
 
 
-def test_get_verdict_mapping():
+def test_get_verdict_mapping(verdict_mapping):
     mock_conn = MagicMock()
 
     mock_conn.cursor().__enter__().fetchall.return_value = [
@@ -45,14 +78,10 @@ def test_get_verdict_mapping():
     result = get_verdict_mapping(mock_conn)
 
     assert isinstance(result, dict)
-    assert result == {
-        'verdict 1': 1,
-        'verdict 2': 2,
-        'verdict 3': 3
-    }
+    assert result == verdict_mapping
 
 
-def test_get_technique_mapping():
+def test_get_technique_mapping(technique_mapping):
     mock_conn = MagicMock()
 
     mock_conn.cursor().__enter__().fetchall.return_value = [
@@ -64,14 +93,10 @@ def test_get_technique_mapping():
     result = get_technique_mapping(mock_conn)
 
     assert isinstance(result, dict)
-    assert result == {
-        'technique 1': 1,
-        'technique 2': 2,
-        'technique 3': 3
-    }
+    assert result == technique_mapping
 
 
-def test_get_outlet_mapping():
+def test_get_outlet_mapping(outlet_mapping):
     mock_conn = MagicMock()
 
     mock_conn.cursor().__enter__().fetchall.return_value = [
@@ -83,8 +108,4 @@ def test_get_outlet_mapping():
     result = get_outlet_mapping(mock_conn)
 
     assert isinstance(result, dict)
-    assert result == {
-        'outlet 1': 1,
-        'outlet 2': 2,
-        'outlet 3': 3
-    }
+    assert result == outlet_mapping
