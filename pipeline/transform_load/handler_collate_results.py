@@ -1,5 +1,5 @@
 """Handler to collate verification results from parallel Lambdas."""
-from summary import generate_summary
+from .summary import generate_summary
 
 
 def combine_main(event):

@@ -1,6 +1,7 @@
 """Holds functions for calculating embedding vectors using OpenAI's API."""
 from dotenv import load_dotenv
 import os
+import logging
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from pgvector.psycopg2 import register_vector
@@ -9,6 +10,8 @@ from pgvector.psycopg2 import register_vector
 def get_connection():
     """Establish a connection to the PostgreSQL database and register the vector type."""
     load_dotenv()
+    logging.info(
+        "Loading environment variables and setting up database connection.")
     try:
         conn = psycopg2.connect(
             host=os.environ['DB_HOST'],
@@ -19,7 +22,7 @@ def get_connection():
         )
         register_vector(conn)
     except Exception as e:
-        print(f"Error connecting to database: {e}")
+        logging.error(f"Error connecting to database: {e}")
         raise
     return conn
 
@@ -27,6 +30,7 @@ def get_connection():
 def find_most_similar_claim(query_embedding):
     """Find the most similar claim(s) to a query embedding using pgvector cosine distance."""
     conn = get_connection()
+    logging.info("Finding the most similar claim in the database.")
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute(
@@ -57,7 +61,7 @@ def find_most_similar_claim(query_embedding):
             row = cur.fetchone()
             conn.commit()
     except Exception as e:
-        print(f"Error executing query: {e}")
+        logging.error(f"Error executing query: {e}")
         raise
     finally:
         conn.close()

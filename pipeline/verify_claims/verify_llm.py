@@ -4,7 +4,7 @@
 import os
 
 from openai import OpenAI
-from verify_models import VerdictResult
+from .verify_models import VerdictResult
 
 
 def compare_claims_with_article(user_text: str, article_text: str) -> dict:

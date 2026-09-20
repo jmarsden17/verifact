@@ -1,12 +1,14 @@
 """Handler to verify a claim against an article from a specified fact check site."""
 
+import logging
 from dotenv import load_dotenv
-from verify_llm import compare_claims_with_article
-from firecrawl_client import extract
+from .verify_llm import compare_claims_with_article
+from .firecrawl_client import extract
 
 
 def handler(event, context):
     """Handler to verify a claim against an article from a specified fact check site."""
+    logging.basicConfig(level=logging.INFO)
     load_dotenv()
 
     claims_data = event["body"]
@@ -15,6 +17,8 @@ def handler(event, context):
 
     results = []
 
+    logging.info(
+        "Starting verification of claims against the specified fact check site.")
     for claim_item in claims_data:
         if claim_item.get("skip_etl") is True:
             verdict = {

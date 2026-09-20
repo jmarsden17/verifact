@@ -8,3 +8,7 @@ RUN pip install -r requirements.txt
 COPY handler_collate_results.py .
 COPY summary.py .
 COPY summary_models.py .
+COPY transform.py .
+COPY load.py .
+
+CMD ["load.handler"]
