@@ -19,6 +19,7 @@ VERDICTS = ["Supported", "Contradicted",
             "Mixed / Missing Context", "Unclear / Not enough evidence"]
 TECHNIQUES = ["Deepfake", "Misleading Context", "None"]
 TOPICS = ["Europe", "Media Journalism", "Technology"]
+OUTLETS = ['BBC', 'Wiki', 'Google']
 
 
 def test_clean_list_value_keeps_a_list_as_is():
@@ -147,7 +148,17 @@ def test_clean_categorical_value_converts_none_to_unknown():
 def test_clean_categorical_value_is_case_insensitive():
     """Matching against the allowed list ignores input casing, but returns the allowed list's own casing."""
     assert clean_categorical_value(
-        "Contradicted".lower(), VERDICTS, 'VERDICTS') == "Contradicted"
+        "Contradicted".lower(), VERDICTS, 'VERDICT') == "Contradicted"
+
+
+def test_clean_categorical_value_unknown_responses():
+    """Checks the responses for each category if it doesn't exist in the database"""
+    assert clean_categorical_value('abc', TOPICS, 'TOPIC_TAGS') == 'Other'
+    assert clean_categorical_value(
+        'abc', TECHNIQUES, 'TECHNIQUE_TAGS') == 'None'
+    assert clean_categorical_value(
+        'abc', VERDICTS, 'VERDICT') == 'Unclear / Not enough evidence'
+    assert clean_categorical_value('abc', OUTLETS, 'OUTLETS') is None
 
 
 def test_clean_categorical_list_keeps_only_allowed_values():
