@@ -202,7 +202,7 @@ def format_sources_insert(sources: list[dict], outlets) -> list[tuple]:
     return formatted_sources
 
 
-def format_claim_source_insert(claim_sources: dict) -> list[tuple]:
+def format_claim_source_insert(claim_sources: list[dict]) -> list[tuple]:
     """Returns a formatted list of tuples for insertion"""
     formatted_insert = []
     for item in claim_sources:

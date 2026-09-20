@@ -11,7 +11,10 @@ from load import (
     get_verdict_mapping,
     get_technique_mapping,
     get_outlet_mapping,
-    format_claim_insert
+    format_claim_insert,
+    format_claim_tags_insert,
+    format_sources_insert,
+    format_claim_source_insert
 )
 
 
@@ -109,3 +112,223 @@ def test_get_outlet_mapping(outlet_mapping):
 
     assert isinstance(result, dict)
     assert result == outlet_mapping
+
+
+def test_format_claim_insert_valid(verdict_mapping, technique_mapping):
+    claims = [
+        {
+            "claim": "claim 1",
+            "verdict": "verdict 1",
+            "technique": "technique 1",
+            "summary": "summary 1",
+            "claim_embedding": [0.1, 0.2, 0.3],
+            "confidence_score": 0.85,
+        },
+        {
+            "claim": "claim 2",
+            "verdict": "verdict 2",
+            "technique": "technique 2",
+            "summary": "summary 2",
+            "claim_embedding": [0.4, 0.5, 0.6],
+            "confidence_score": 0.25,
+        }
+    ]
+
+    result = format_claim_insert(claims, verdict_mapping, technique_mapping)
+
+    assert isinstance(result, list)
+    assert len(result) == 2
+    assert isinstance(result[0], tuple)
+    assert result[0] == (
+        "claim 1",
+        1,
+        1,
+        "summary 1",
+        [0.1, 0.2, 0.3],
+        0.85,
+    )
+    assert isinstance(result[1], tuple)
+    assert result[1] == (
+        "claim 2",
+        2,
+        2,
+        "summary 2",
+        [0.4, 0.5, 0.6],
+        0.25,
+    )
+
+
+def test_format_claim_insert_invalid(verdict_mapping, technique_mapping):
+    claims = [
+        {
+            "claim": "claim 1",
+            "verdict": "no verdict",
+            "technique": "technique 1",
+            "summary": "summary 1",
+            "claim_embedding": [0.1, 0.2, 0.3],
+            "confidence_score": 0.85,
+        },
+        {
+            "claim": "claim 2",
+            "verdict": "verdict 2",
+            "technique": "no technique",
+            "summary": "summary 2",
+            "claim_embedding": [0.4, 0.5, 0.6],
+            "confidence_score": 0.25,
+        },
+        {
+            "claim": "claim 3",
+            "verdict": "no verdict ",
+            "technique": "no technique",
+            "summary": "summary 2",
+            "claim_embedding": [0.7, 0.8, 0.9],
+            "confidence_score": 0.5,
+        }
+    ]
+
+    result = format_claim_insert(claims, verdict_mapping, technique_mapping)
+
+    assert isinstance(result, list)
+    assert len(result) == 0
+
+
+def test_format_claim_tags_insert_valid():
+    claim_tags = [
+        {
+            'claim_id': '1',
+            'tags_id': ['1', '2', '3']
+        },
+        {
+            'claim_id': '2',
+            'tags_id': []
+        }
+    ]
+
+    result = format_claim_tags_insert(claim_tags)
+
+    assert isinstance(result, list)
+    assert len(result) == 3
+    assert isinstance(result[0], tuple)
+    assert result[0] == (1, 1)
+    assert isinstance(result[1], tuple)
+    assert result[1] == (1, 2)
+    assert isinstance(result[2], tuple)
+    assert result[2] == (1, 3)
+
+
+def test_format_claim_tags_insert_invalid():
+    claim_tags = [
+        {
+            'claim_id': '1',
+            'tags_id': ['a', '!', '1.2', '', None]
+        }
+    ]
+
+    result = format_claim_tags_insert(claim_tags)
+
+    assert isinstance(result, list)
+    assert len(result) == 0
+
+
+def test_format_sources_insert_valid(outlet_mapping):
+    sources = [
+        {
+            'sources': 'source 1',
+            'source_reasoning': 'reasoning 1',
+            'source_name': 'outlet 1'
+        },
+        {
+            'sources': 'source 2',
+            'source_reasoning': 'reasoning 2',
+            'source_name': 'outlet 2'
+        },
+    ]
+
+    result = format_sources_insert(sources, outlet_mapping)
+
+    assert isinstance(result, list)
+    assert len(result) == 2
+    assert isinstance(result[0], tuple)
+    assert result[0] == (
+        'source 1',
+        'reasoning 1',
+        1
+    )
+    assert isinstance(result[1], tuple)
+    assert result[1] == (
+        'source 2',
+        'reasoning 2',
+        2
+    )
+
+
+def test_format_sources_insert_invalid(outlet_mapping):
+    sources = [
+        {
+            'sources': 'source 1',
+            'source_reasoning': 'reasoning 1',
+            'source_name': 'no outlet'
+        },
+        {
+            'sources': 'source 2',
+            'source_reasoning': 'reasoning 2',
+            'source_name': None
+        },
+    ]
+
+    result = format_sources_insert(sources, outlet_mapping)
+
+    assert isinstance(result, list)
+    assert len(result) == 0
+
+
+def test_format_claim_source_insert_valid():
+    claim_source = [
+        {
+            'claim_id': '1',
+            'source_id': '1'
+        },
+        {
+            'claim_id': '2',
+            'source_id': '2'
+        },
+    ]
+
+    result = format_claim_source_insert(claim_source)
+
+    assert isinstance(result, list)
+    assert len(result) == 2
+    assert isinstance(result[0], tuple)
+    assert result[0] == (1, 1)
+    assert isinstance(result[1], tuple)
+    assert result[1] == (2, 2)
+
+
+def test_format_claim_source_insert_invalid():
+    claim_source = [
+        {
+            'claim_id': '1',
+            'source_id': 'a'
+        },
+        {
+            'claim_id': '2',
+            'source_id': '!'
+        },
+        {
+            'claim_id': '3',
+            'source_id': '1.2'
+        },
+        {
+            'claim_id': '4',
+            'source_id': ''
+        },
+        {
+            'claim_id': '5',
+            'source_id': None
+        },
+    ]
+
+    result = format_claim_source_insert(claim_source)
+
+    assert isinstance(result, list)
+    assert len(result) == 0
