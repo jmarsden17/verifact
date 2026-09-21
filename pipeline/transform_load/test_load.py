@@ -4,9 +4,12 @@
 Test for load file
 """
 import pytest
-from unittest.mock import MagicMock
+import pandas as pd
+from unittest.mock import MagicMock, patch
+from psycopg2 import OperationalError
 
 from load import (
+    get_db_connection,
     get_tag_mapping,
     get_verdict_mapping,
     get_technique_mapping,
@@ -14,7 +17,8 @@ from load import (
     format_claim_insert,
     format_claim_tags_insert,
     format_sources_insert,
-    format_claim_source_insert
+    format_claim_source_insert,
+
 )
 
 
@@ -332,3 +336,34 @@ def test_format_claim_source_insert_invalid():
 
     assert isinstance(result, list)
     assert len(result) == 0
+
+
+# ---------------------------------------------------------------------------
+# get_db_connection
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def db_env(monkeypatch):
+    monkeypatch.setenv("DATABASE_NAME", "test_db")
+    monkeypatch.setenv("DATABASE_IP", "localhost")
+    monkeypatch.setenv("DATABASE_PASSWORD", "test_password")
+    monkeypatch.setenv("DATABASE_USERNAME", "test_user")
+    monkeypatch.setenv("DATABASE_PORT", "5432")
+
+
+@patch("load.connect")
+def test_get_db_connection_success(mock_connect, db_env):
+    result = get_db_connection()
+
+    assert result == mock_connect.return_value
+    kwargs = mock_connect.call_args.kwargs
+    assert kwargs["dbname"] == "test_db"
+    assert kwargs["host"] == "localhost"
+    assert kwargs["password"] == "test_password"
+    assert kwargs["user"] == "test_user"
+    assert kwargs["port"] == "5432"
+
+
+@patch("load.connect", side_effect=OperationalError("connection failed"))
+def test_get_db_connection_failure_returns_none(mock_connect, db_env):
+    assert get_db_connection() is None
