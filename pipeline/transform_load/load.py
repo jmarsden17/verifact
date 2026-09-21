@@ -11,7 +11,7 @@ from psycopg2.extensions import connection
 import pandas as pd
 
 from transform import transform
-from handler_collate_results import combine_main
+from collate_results import combine_main
 
 
 def get_db_connection() -> connection:
