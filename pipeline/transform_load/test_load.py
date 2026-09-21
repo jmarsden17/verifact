@@ -25,7 +25,8 @@ from load import (
     main_claim_insertion_function,
     main_claim_source_insertion_function,
     main_claim_tags_insertion_function,
-    main_source_insertion_function
+    main_source_insertion_function,
+    load as run_load
 )
 
 
@@ -562,3 +563,44 @@ def test_main_claim_source_insertion_function(mock_add):
     assert mock_add.call_args.args[0] == conn
     assert mock_add.call_args.args[1] == [(1, 10)]
  
+
+# ---------------------------------------------------------------------------
+# load
+# ---------------------------------------------------------------------------
+ 
+@patch("load.main_claim_source_insertion_function")
+@patch("load.main_source_insertion_function")
+@patch("load.main_claim_tags_insertion_function")
+@patch("load.main_claim_insertion_function")
+@patch("load.get_db_connection")
+@patch("load.load_dotenv")
+def test_load_runs_every_insertion(mock_dotenv, mock_get_conn, mock_claims,
+                                   mock_claim_tags, mock_sources, mock_claim_source):
+    conn = mock_get_conn.return_value
+    mock_claims.return_value = {"claim 1": 1, "claim 2": 2}
+    mock_sources.return_value = {"source 1": 7, "source 2": 8}
+    data = pd.DataFrame({
+        "claim": ["claim 1", "claim 2"],
+        "sources": ["source 1", "source 2"]
+    })
+ 
+    run_load(data)
+ 
+    mock_dotenv.assert_called_once()
+    for mock_insert in [mock_claims, mock_claim_tags, mock_sources, mock_claim_source]:
+        mock_insert.assert_called_once()
+        assert mock_insert.call_args.args[0] == conn
+        assert mock_insert.call_args.args[1] is data
+    # the ids returned by the inserts are added to the data for the later steps
+    assert data["claim_id"].tolist() == [1, 2]
+    assert data["source_id"].tolist() == [7, 8]
+ 
+ 
+@patch("load.main_claim_insertion_function")
+@patch("load.get_db_connection", return_value=None)
+@patch("load.load_dotenv")
+def test_load_exits_when_no_connection(mock_dotenv, mock_get_conn, mock_claims):
+    with pytest.raises(SystemExit):
+        run_load(pd.DataFrame())
+ 
+    mock_claims.assert_not_called()
