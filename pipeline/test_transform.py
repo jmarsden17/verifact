@@ -1,3 +1,5 @@
+# pylint: skip-file
+
 """Tests for transform script."""
 
 from transform_load.transform import (
@@ -141,7 +143,8 @@ def test_clean_categorical_value_converts_none_to_unknown():
 
 def test_clean_categorical_value_is_case_insensitive():
     """Matching against the allowed list ignores input casing, but returns the allowed list's own casing."""
-    assert clean_categorical_value("Contradicted".lower(), VERDICTS) == "Contradicted"
+    assert clean_categorical_value(
+        "Contradicted".lower(), VERDICTS) == "Contradicted"
 
 
 def test_clean_categorical_list_keeps_only_allowed_values():
