@@ -53,6 +53,7 @@ def get_all_relevant_information(nlp, keywords: list[str]) -> str:
 
 
 def handler(event=None, context=None):
+    """Main handler function for Lambda"""
     logging.basicConfig(level=logging.INFO)
     nlp = load_spacy_model()
 
@@ -67,3 +68,5 @@ def handler(event=None, context=None):
 
     get_all_relevant_information(nlp, extract)
     logging.info("Extraction complete")
+
+    # TODO: Add a return to pass data to the next Lambda
