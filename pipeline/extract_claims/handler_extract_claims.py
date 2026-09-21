@@ -46,7 +46,10 @@ def handler(event, context):
 
     return {
         "statusCode": 200,
-        "body": claims
+        "body": {
+            "to_process": [c for c in claims if not c.get("skip_etl")],
+            "skipped":    [c for c in claims if c.get("skip_etl")],
+        }
     }
 
 
@@ -64,3 +67,11 @@ def generate_embeddings(claim: str) -> list[float]:
     )
     embedding_vector = response.data[0].embedding
     return embedding_vector
+
+
+if __name__ == "__main__":
+    test_event = {
+        "user_text": "hormuz is open."
+    }
+    response = handler(test_event, None)
+    print(response)

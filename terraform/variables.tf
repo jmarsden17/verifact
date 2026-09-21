@@ -80,6 +80,6 @@ variable "vpc_subnet_ids" {
 }
 
 variable "rds_sg_id" {
-    description = "Security group ID for Lambda functions"
+    description = "Security group ID for RDS instance"
     type = string
 }

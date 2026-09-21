@@ -44,19 +44,27 @@ resource "aws_iam_role_policy_attachment" "vpc_access" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
 }
 
+resource "aws_security_group" "c25_disinformation_extract_lambda_sg" {
+  name        = "c25-disinformation-extract-lambda-sg"
+  description = "Security group for the extract lambda function"
+  vpc_id      = var.vpc_id
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
 resource "aws_lambda_function" "extract_lambda" {
     function_name = "c25_disinformation_extract"
     role = aws_iam_role.extract_lambda_role.arn
     package_type = "Image"
-    image_uri = "" # Need image here
+    image_uri = "129033205317.dkr.ecr.eu-west-2.amazonaws.com/c25-disinformation-ecr-query:latest" # Need image here
 
     memory_size = 512
     timeout = 120
-    
-      vpc_config {
-        subnet_ids         = var.vpc_subnet_ids
-        security_group_ids = [var.rds_sg_id]
-      }
     
 
       environment {

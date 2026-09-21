@@ -12,13 +12,12 @@ def handler(event=None, context=None) -> dict:
     """Main handler function for Lambda"""
     logging.basicConfig(level=logging.INFO)
 
+    results = event.get("results", [])
+    skipped = event.get("skipped", [])
+
     # Get data from extract:
-    list_parallel = [event]
-    input_event = {
-        'statusCode': 200,
-        'body': list_parallel
-    }
-    combined = combine_main(input_event['body'])
+
+    combined = combine_main(results)
     verdict_list = []
     for key in combined:
         verdicts = combined[key]['verdicts']
@@ -49,12 +48,26 @@ def handler(event=None, context=None) -> dict:
 
     # Filters out data that should not be loaded into the RDS based on the 'skip_etl' flag
     logging.info("Filtering out data with 'skip_etl' set to True")
-    new_data = data[data['skip_etl'] == False]
 
     # Loads the data into the RDS
-    load(new_data)
+    if not data.empty:
+        load(data)
+
+    output_records = []
+
+    output_records = data.to_dict(orient='records')
+
+    for row in skipped:
+        output_records.append({
+            "claim": row["text"],
+            "verdict": row["verdict"],
+            "similarity": float(row["similarity"]),
+            "summary": row["summary"],
+            "technique": row["technique"],
+            "skip_etl": True,
+        })
 
     return {
         "statusCode": 200,
-        "body": data.to_dict(orient='records')
+        "body": output_records
     }

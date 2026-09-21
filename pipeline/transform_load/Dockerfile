@@ -1,7 +1,5 @@
 FROM public.ecr.aws/lambda/python:3.12
 
-WORKDIR /app
-
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
@@ -11,5 +9,7 @@ COPY summary_models.py .
 COPY transform.py .
 COPY load.py .
 COPY handler_final.py .
+
+COPY . .
 
 CMD ["handler_final.handler"]
