@@ -46,9 +46,6 @@ def handler(event=None, context=None) -> dict:
     # Convert flattened list back to a clean DataFrame for SQL operations
     data = pd.DataFrame(flattened_data)
 
-    # Filters out data that should not be loaded into the RDS based on the 'skip_etl' flag
-    logging.info("Filtering out data with 'skip_etl' set to True")
-
     # Loads the data into the RDS
     if not data.empty:
         load(data)

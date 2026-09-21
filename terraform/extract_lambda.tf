@@ -44,18 +44,6 @@ resource "aws_iam_role_policy_attachment" "vpc_access" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
 }
 
-resource "aws_security_group" "c25_disinformation_extract_lambda_sg" {
-  name        = "c25-disinformation-extract-lambda-sg"
-  description = "Security group for the extract lambda function"
-  vpc_id      = var.vpc_id
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
 
 resource "aws_lambda_function" "extract_lambda" {
     function_name = "c25_disinformation_extract"
