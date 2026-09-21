@@ -1,11 +1,10 @@
-"""Source rundown shown inside each claim report (all sources visible, no dropdowns)."""
+"""Source details for a claim, shown in a dropdown under the claim overview."""
 
 import re
 
 import streamlit as st
 
 from .html_utils import esc, safe_url
-from .section import render_section_heading
 from .. import theme
 
 # Word boundaries avoid substring matches like "EVidence"
@@ -57,20 +56,13 @@ def _outlet_names(sources: list) -> list:
 
 
 def render_source_evidence(sources: list):
-    """Render every source for a claim as a card grid, under a short summary line."""
+    """One dropdown per claim holding a card for every source."""
 
     outlets = _outlet_names(sources)
-    count = len(sources)
 
-    st.markdown("---")
-    render_section_heading(
-        f"Sources ({count})",
-        f"Checked against {count} source{'s' if count != 1 else ''} "
-        f"from {esc(', '.join(outlets))}.",
-        level=4,
-    )
-
-    # One HTML block with no blank lines so Markdown doesn't break it up
-    cards = "".join(_source_card(src) for src in sources)
-    st.markdown(f'<div class="source-grid">{cards}</div>',
-                unsafe_allow_html=True)
+    with st.expander(f"📚 Source details ({len(sources)}) — {', '.join(outlets)}",
+                     expanded=False):
+        # One HTML block with no blank lines so Markdown doesn't break it up
+        cards = "".join(_source_card(src) for src in sources)
+        st.markdown(f'<div class="source-grid">{cards}</div>',
+                    unsafe_allow_html=True)

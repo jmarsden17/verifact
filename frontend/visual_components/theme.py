@@ -1,5 +1,4 @@
 """Fixed design elements for the app."""
-
 import streamlit as st
 
 # Custom Brand Colours
@@ -161,6 +160,75 @@ def inject_custom_theme():
         [data-testid="stMetricValue"] {{
             color: {COLOUR_PRIMARY_DARK} !important;
             font-weight: 800 !important;
+        }}
+
+        /* Claim heading (the statement being checked) */
+        .claim-label {{
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            color: {COLOUR_TEXT_MUTED};
+            margin-bottom: 4px;
+        }}
+
+        .claim-statement {{
+            font-size: 20px;
+            font-weight: 700;
+            line-height: 1.35;
+            color: {COLOUR_TEXT_MAIN};
+            margin-bottom: 14px;
+        }}
+
+        /* Big verdict banner: --banner-bg / --banner-fg are set per verdict */
+        .verdict-banner {{
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background-color: var(--banner-bg);
+            border-left: 3px solid var(--banner-border);
+            border-radius: 8px;
+            padding: 10px 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
+        }}
+
+        .verdict-banner, .verdict-banner * {{
+            color: var(--banner-fg) !important;
+        }}
+
+        .verdict-banner .verdict-banner__icon {{
+            flex-shrink: 0;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: var(--banner-fg);
+            color: var(--banner-bg) !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: 800;
+            line-height: 1;
+        }}
+
+        .verdict-banner__label {{
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1.2px;
+        }}
+
+        .verdict-banner__verdict {{
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: 0.3px;
+            line-height: 1.2;
+        }}
+
+        .verdict-banner__text {{
+            margin-top: 1px;
+            font-size: 13px;
+            font-weight: 500;
         }}
 
         /* Chips (small labels and links) */
