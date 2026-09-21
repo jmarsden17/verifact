@@ -46,7 +46,10 @@ def handler(event, context):
 
     return {
         "statusCode": 200,
-        "body": claims
+        "body": {
+            "to_process": [c for c in claims if not c.get("skip_etl")],
+            "skipped":    [c for c in claims if c.get("skip_etl")],
+        }
     }
 
 
