@@ -5,10 +5,11 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
-COPY handler_collate_results.py .
+COPY collate_results.py .
 COPY summary.py .
 COPY summary_models.py .
 COPY transform.py .
 COPY load.py .
+COPY handler_final.py .
 
-CMD ["load.handler"]
+CMD ["handler_final.handler"]
