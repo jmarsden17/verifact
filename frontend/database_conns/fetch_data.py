@@ -79,15 +79,6 @@ def fetch_analytics_data() -> pd.DataFrame:
         ])
 
 
-# Import pipeline handlers dynamically
-try:
-    import pipeline.handler_extract_claims as handler_extract_claims
-    import pipeline.handler_verify_claim as handler_verify_claim
-    PIPELINE_AVAILABLE = True
-except ImportError:
-    PIPELINE_AVAILABLE = False
-
-
 def verify_claim(claim_input: str, url_input: str = "") -> dict:
     """Pass user input to pipeline handlers and return formatted results for UI."""
 
@@ -170,52 +161,3 @@ def get_filtered_logs(search_query: str = "", verdict_filter: str = "All") -> pd
     except Exception as e:
         print(f"⚠️ Live RDS Query Exception: {e}")
         raise e
-
-
-def get_top_disproven_claims() -> pd.DataFrame:
-    """Fetch recent live claims from RDS filtered for Contradicted or Missing Context verdicts."""
-    query = """
-        SELECT 
-            c.claim_id,
-            c.claim AS claim_text,
-            COALESCE(v.verdict, 'Contradicted') AS verdict,
-            STRING_AGG(DISTINCT o.outlet, ', ') AS publishers,
-            c.access_datetime AS timestamp
-        FROM claim c
-        JOIN verdict v ON c.verdict_id = v.verdict_id
-        LEFT JOIN claim_source cs ON c.claim_id = cs.claim_id
-        LEFT JOIN source s ON cs.source_id = s.source_id
-        LEFT JOIN outlet o ON s.outlet_id = o.outlet_id
-        WHERE LOWER(v.verdict) IN ('contradicted', 'missing context')
-        GROUP BY c.claim_id, c.claim, v.verdict, c.access_datetime
-        ORDER BY c.access_datetime DESC
-        LIMIT 10
-    """
-    try:
-        conn = get_db_connection()
-        df = pd.read_sql(query, conn)
-        conn.close()
-        return df
-    except Exception as e:
-        print(f"⚠️ RDS Fetch Error: {e}")
-        # Mock fallback for UI preview
-        return pd.DataFrame([
-            {
-                "claim_text": "Claim regarding central bank emergency interest rate cuts",
-                "verdict": "Contradicted",
-                "publishers": "BBC Verify",
-                "timestamp": "10m ago"
-            },
-            {
-                "claim_text": "Drinking warm lemon water daily completely cures type 2 diabetes.",
-                "verdict": "Contradicted",
-                "publishers": "Full Fact, Reuters",
-                "timestamp": "35m ago"
-            },
-            {
-                "claim_text": "Statistics on regional hospital waiting times in shared image",
-                "verdict": "Missing Context",
-                "publishers": "Full Fact",
-                "timestamp": "45m ago"
-            }
-        ])
