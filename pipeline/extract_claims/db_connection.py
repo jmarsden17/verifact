@@ -30,7 +30,6 @@ def get_connection():
 def find_most_similar_claim(query_embedding):
     """Find the most similar claim(s) to a query embedding using pgvector cosine distance."""
     conn = get_connection()
-    logging.info("Finding the most similar claim in the database.")
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute(

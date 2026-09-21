@@ -4,8 +4,8 @@ import os
 import logging
 from openai import OpenAI
 from dotenv import load_dotenv
-from .extract_llm import get_claims_from_user
-from .db_connection import find_most_similar_claim
+from extract_llm import get_claims_from_user
+from db_connection import find_most_similar_claim
 
 
 def handler(event, context):

@@ -2,8 +2,8 @@
 
 import logging
 from dotenv import load_dotenv
-from .verify_llm import compare_claims_with_article
-from .firecrawl_client import extract
+from verify_llm import compare_claims_with_article
+from firecrawl_client import extract
 
 
 def handler(event, context):

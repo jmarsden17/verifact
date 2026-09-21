@@ -9,10 +9,9 @@ from psycopg2 import connect, OperationalError
 from psycopg2.extras import RealDictCursor, execute_values
 from psycopg2.extensions import connection
 import pandas as pd
-import pprint
 
-from .transform import transform
-from .handler_collate_results import combine_main
+from transform import transform
+from handler_collate_results import combine_main
 
 
 def get_db_connection() -> connection:

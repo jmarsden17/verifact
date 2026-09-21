@@ -4,7 +4,7 @@ import os
 
 from openai import OpenAI
 from dotenv import load_dotenv
-from .summary_models import SummaryResult
+from summary_models import SummaryResult
 
 
 def generate_summary(grouped_claims: list[dict]) -> SummaryResult:

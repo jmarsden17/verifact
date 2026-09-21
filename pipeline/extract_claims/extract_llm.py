@@ -2,7 +2,7 @@
 import os
 
 from openai import OpenAI
-from .extract_models import InputAnalysis, Claim
+from extract_models import InputAnalysis, Claim
 
 
 def get_claims_from_user(text: str) -> dict:
