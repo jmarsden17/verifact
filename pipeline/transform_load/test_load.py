@@ -18,7 +18,14 @@ from load import (
     format_claim_tags_insert,
     format_sources_insert,
     format_claim_source_insert,
-
+    add_claim_source_to_database,
+    add_claim_tags_to_database,
+    add_claims_to_database,
+    add_source_to_database,
+    main_claim_insertion_function,
+    main_claim_source_insertion_function,
+    main_claim_tags_insertion_function,
+    main_source_insertion_function
 )
 
 
@@ -339,7 +346,7 @@ def test_format_claim_source_insert_invalid():
 
 
 # ---------------------------------------------------------------------------
-# get_db_connection
+# db connection
 # ---------------------------------------------------------------------------
 
 @pytest.fixture
@@ -367,3 +374,191 @@ def test_get_db_connection_success(mock_connect, db_env):
 @patch("load.connect", side_effect=OperationalError("connection failed"))
 def test_get_db_connection_failure_returns_none(mock_connect, db_env):
     assert get_db_connection() is None
+
+
+# ---------------------------------------------------------------------------
+# add to database
+# ---------------------------------------------------------------------------
+ 
+@patch("load.execute_values")
+def test_add_claims_to_database(mock_execute_values):
+    mock_conn = MagicMock()
+    mock_cursor = mock_conn.cursor().__enter__()
+    mock_cursor.fetchall.return_value = [
+        {"claim": "claim 1", "claim_id": 1},
+        {"claim": "claim 2", "claim_id": 2}
+    ]
+    data = [
+        ("claim 1", 1, 1, "summary 1", [0.1, 0.2], 0.85),
+        ("claim 2", 2, 2, "summary 2", [0.3, 0.4], 0.25)
+    ]
+ 
+    result = add_claims_to_database(mock_conn, data)
+ 
+    assert result == {"claim 1": 1, "claim 2": 2}
+    mock_execute_values.assert_called_once()
+    assert mock_execute_values.call_args.args[0] == mock_cursor
+    assert mock_execute_values.call_args.args[2] == data
+    mock_conn.commit.assert_called_once()
+ 
+ 
+@patch("load.execute_values")
+def test_add_source_to_database(mock_execute_values):
+    mock_conn = MagicMock()
+    mock_cursor = mock_conn.cursor().__enter__()
+    mock_cursor.fetchall.return_value = [
+        {"source_url": "source 1", "source_id": 10},
+        {"source_url": "source 2", "source_id": 11}
+    ]
+    data = [
+        ("source 1", "reasoning 1", 1),
+        ("source 2", "reasoning 2", 2)
+    ]
+ 
+    result = add_source_to_database(mock_conn, data)
+ 
+    assert result == {"source 1": 10, "source 2": 11}
+    assert mock_execute_values.call_args.args[2] == data
+    mock_conn.commit.assert_called_once()
+ 
+ 
+@pytest.mark.parametrize("add_function", [
+    add_claim_tags_to_database,
+    add_claim_source_to_database
+])
+@patch("load.execute_values")
+def test_add_link_tables_to_database(mock_execute_values, add_function):
+    mock_conn = MagicMock()
+    data = [(1, 1), (1, 2)]
+ 
+    result = add_function(mock_conn, data)
+ 
+    assert result is None
+    assert mock_execute_values.call_args.args[2] == data
+    mock_conn.commit.assert_called_once()
+
+
+
+# ---------------------------------------------------------------------------
+# main insertion functions
+# ---------------------------------------------------------------------------
+ 
+@patch("load.add_claims_to_database")
+@patch("load.get_technique_mapping")
+@patch("load.get_verdict_mapping")
+def test_main_claim_insertion_function(mock_verdicts, mock_techniques, mock_add,
+                                       verdict_mapping, technique_mapping):
+    mock_verdicts.return_value = verdict_mapping
+    mock_techniques.return_value = technique_mapping
+    mock_add.return_value = {"claim 1": 10, "claim 2": 20}
+    conn = MagicMock()
+    data = pd.DataFrame({
+        "claim": ["claim 1", "claim 1", "claim 2"],
+        "verdict": ["verdict 1", "verdict 1", "verdict 2"],
+        "technique": ["technique 1", "technique 1", "technique 2"],
+        "summary": ["summary 1", "summary 1", "summary 2"],
+        "claim_embedding": [[0.1, 0.2], [0.1, 0.2], [0.3, 0.4]],
+        "confidence_score": [0.8, 0.8, 0.4]
+    })
+ 
+    result = main_claim_insertion_function(conn, data)
+ 
+    assert result == {"claim 1": 10, "claim 2": 20}
+    assert mock_add.call_args.args[0] == conn
+    assert mock_add.call_args.args[1] == [
+        ("claim 1", 1, 1, "summary 1", [0.1, 0.2], 0.8),
+        ("claim 2", 2, 2, "summary 2", [0.3, 0.4], 0.4)
+    ]
+ 
+ 
+@patch("load.add_claims_to_database")
+@patch("load.get_technique_mapping")
+@patch("load.get_verdict_mapping")
+def test_main_claim_insertion_function_drops_missing_values(
+        mock_verdicts, mock_techniques, mock_add, verdict_mapping, technique_mapping):
+    mock_verdicts.return_value = verdict_mapping
+    mock_techniques.return_value = technique_mapping
+    data = pd.DataFrame({
+        "claim": ["claim 1", "claim 2"],
+        "verdict": ["verdict 1", "verdict 2"],
+        "technique": ["technique 1", "technique 2"],
+        "summary": ["summary 1", None],
+        "claim_embedding": [[0.1, 0.2], [0.3, 0.4]],
+        "confidence_score": [0.8, 0.4]
+    })
+ 
+    main_claim_insertion_function(MagicMock(), data)
+ 
+    assert mock_add.call_args.args[1] == [
+        ("claim 1", 1, 1, "summary 1", [0.1, 0.2], 0.8)
+    ]
+ 
+ 
+@patch("load.add_claim_tags_to_database")
+@patch("load.get_tag_mapping")
+def test_main_claim_tags_insertion_function(mock_tags, mock_add, tag_mapping):
+    mock_tags.return_value = tag_mapping
+    conn = MagicMock()
+    data = pd.DataFrame({
+        "claim_id": [1, 1, 2],
+        "tags": [("tag 1", "tag 2"), ("tag 1", "tag 2"), ("tag 3",)]
+    })
+ 
+    main_claim_tags_insertion_function(conn, data)
+ 
+    mock_add.assert_called_once()
+    assert mock_add.call_args.args[0] == conn
+    assert mock_add.call_args.args[1] == [(1, 1), (1, 2), (2, 3)]
+ 
+ 
+@patch("load.add_claim_tags_to_database")
+@patch("load.get_tag_mapping")
+def test_main_claim_tags_insertion_function_skips_missing_claim_id(
+        mock_tags, mock_add, tag_mapping):
+    mock_tags.return_value = tag_mapping
+    data = pd.DataFrame({
+        "claim_id": [1.0, None],
+        "tags": [("tag 1",), ("tag 2",)]
+    })
+ 
+    main_claim_tags_insertion_function(MagicMock(), data)
+ 
+    assert mock_add.call_args.args[1] == [(1, 1)]
+ 
+ 
+@patch("load.add_source_to_database")
+@patch("load.get_outlet_mapping")
+def test_main_source_insertion_function(mock_outlets, mock_add, outlet_mapping):
+    mock_outlets.return_value = outlet_mapping
+    mock_add.return_value = {"source 1": 5, "source 2": 6}
+    conn = MagicMock()
+    data = pd.DataFrame({
+        "sources": ["source 1", "source 2", None],
+        "source_name": ["outlet 1", "outlet 2", "outlet 3"],
+        "source_reasoning": ["reasoning 1", "reasoning 2", "reasoning 3"]
+    })
+ 
+    result = main_source_insertion_function(conn, data)
+ 
+    assert result == {"source 1": 5, "source 2": 6}
+    assert mock_add.call_args.args[0] == conn
+    # the row with no source is dropped
+    assert mock_add.call_args.args[1] == [
+        ("source 1", "reasoning 1", 1),
+        ("source 2", "reasoning 2", 2)
+    ]
+ 
+ 
+@patch("load.add_claim_source_to_database")
+def test_main_claim_source_insertion_function(mock_add):
+    conn = MagicMock()
+    data = pd.DataFrame({
+        "claim_id": [1.0, 2.0, None],
+        "source_id": [10.0, None, 30.0]
+    })
+ 
+    main_claim_source_insertion_function(conn, data)
+ 
+    assert mock_add.call_args.args[0] == conn
+    assert mock_add.call_args.args[1] == [(1, 10)]
+ 
