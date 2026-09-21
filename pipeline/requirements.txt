@@ -11,3 +11,5 @@ lxml[html-clean]
 pandas
 boto3
 psycopg2-binary
+pytextrank
+
