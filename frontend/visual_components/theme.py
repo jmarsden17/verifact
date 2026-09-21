@@ -1,4 +1,5 @@
 """Fixed design elements for the app."""
+
 import streamlit as st
 
 # Custom Brand Colours
@@ -9,15 +10,15 @@ COLOUR_BORDER = "#E2E8F0"
 COLOUR_TEXT_MAIN = "#0F172A"
 COLOUR_TEXT_MUTED = "#64748B"
 
-# Accent ("look at me") colour - buttons, active nav, key numbers, links.
-# Change these to re-skin the app. Other option: deep navy "#1E3A8A".
+# Accent colour - buttons, active nav, key numbers, links.
+# Change these to re-skin the app.
 COLOUR_PRIMARY = "#2563EB"
 COLOUR_PRIMARY_HOVER = "#1D4ED8"
-COLOUR_PRIMARY_DARK = "#1E3A8A"   # text on soft backgrounds, logo strokes
-COLOUR_PRIMARY_SOFT = "#DBEAFE"   # tinted backgrounds (active nav, chips)
-COLOUR_PRIMARY_RGB = "37, 99, 235"  # same as COLOUR_PRIMARY, for shadows
+COLOUR_PRIMARY_DARK = "#1E3A8A"
+COLOUR_PRIMARY_SOFT = "#DBEAFE"
+COLOUR_PRIMARY_RGB = "37, 99, 235"
 
-# Semantic Colours - Modern Emerald / Rose / Amber
+# Semantic Colours
 COLOUR_SUCCESS_BG = "#E6F4EA"
 COLOUR_SUCCESS_FG = "#10B981"
 
@@ -30,6 +31,11 @@ COLOUR_WARNING_FG = "#F59E0B"
 COLOUR_UNCLEAR_BG = "#F1F5F9"
 COLOUR_UNCLEAR_FG = "#64748B"
 
+# Gradient bar colours
+GRADIENT_LOW_SCORE = "#112459"
+GRADIENT_MID_SCORE = "#3C71E6"
+GRADIENT_HIGH_SCORE = "#C3DDFA"
+
 # Verdict lookups - single source of truth shared by badges and charts
 VERDICT_ORDER = ["Supported", "Contradicted", "Missing Context", "Unclear"]
 
@@ -41,7 +47,7 @@ VERDICT_CHART_COLOURS = {
     "Unclear": COLOUR_UNCLEAR_FG,
 }
 
-# (background, text colour, icon) per verdict (badges)
+# Per verdict badges
 VERDICT_BADGES = {
     "Contradicted": (COLOUR_DANGER_BG, COLOUR_DANGER_FG, "❌"),
     "Supported": (COLOUR_SUCCESS_BG, COLOUR_SUCCESS_FG, "✅"),

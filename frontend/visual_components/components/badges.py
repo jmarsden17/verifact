@@ -8,7 +8,8 @@ from .. import theme
 def render_verdict_badge(rating: str):
     """Render status indicators."""
 
-    bg, fg, icon = theme.VERDICT_BADGES.get(rating, theme.VERDICT_BADGE_DEFAULT)
+    fg, bg, icon = theme.VERDICT_BADGES.get(
+        rating, theme.VERDICT_BADGE_DEFAULT)
 
     badge_html = f"""
     <div style="
@@ -23,8 +24,17 @@ def render_verdict_badge(rating: str):
         font-size: 14px;
         margin-bottom: 12px;
     ">
-        <span>{icon}</span>
+        <span style="
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #ffffff;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+        ">{icon}</span>
         <span>VERDICT: {rating.upper()}</span>
     </div>
     """
+
     st.markdown(badge_html, unsafe_allow_html=True)
