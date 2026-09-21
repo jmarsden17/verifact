@@ -8,7 +8,7 @@ The sidebar has four pages.
 
 | View | What it shows | Data source |
 |---|---|---|
-| Claim Verification | A text box for a statement or headline, an optional URL, and a demo button that fills in a paragraph with several claims. Results show a summary (counts of supported, contradicted and missing context claims, an accuracy percentage and a donut chart), then a report for each claim with a verdict badge, reasoning, a confidence gauge and the source evidence. | Mock data at the moment (see [Known issues](#known-issues)) |
+| Claim Verification | A text box for a statement or headline, an optional URL, and a demo button that fills in a paragraph with several claims. Results show a summary (counts of supported, contradicted and missing context claims, an accuracy percentage and a donut chart), then a report for each claim with a verdict badge, reasoning, a confidence gauge and the source evidence. | Mock data at the moment |
 | Top Disproven Claims | The 10 most recent claims rated Contradicted or Missing Context, with outlet names and timestamps. | RDS, with sample data if the query fails |
 | Verification Logs | A searchable table of past checks with timestamp, claim, verdict, technique, number of sources and tags. Has a keyword box and a verdict filter. | RDS |
 | Outlet Analytics | Metric cards (total claims checked, main outlet, top technique, resurfaced myths older than 7 days) and two charts: verdicts by outlet, and new submissions against resurfacing queries by week. | RDS, with sample data if the query fails |
