@@ -1,9 +1,8 @@
 """LLM client functions for extracting claims using the OpenAI SDK."""
-from openai import OpenAI, APIConnectionError, AuthenticationError, APIStatusError
 import os
 import logging
 
-from openai import OpenAI
+from openai import OpenAI, APIConnectionError, AuthenticationError, APIStatusError
 from extract_models import InputAnalysis, Claim
 
 
