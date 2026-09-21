@@ -4,7 +4,7 @@ Main handler file for the lambda function
 import pandas as pd
 import logging
 from transform import transform
-from handler_collate_results import combine_main
+from collate_results import combine_main
 from load import load
 
 
@@ -47,8 +47,12 @@ def handler(event=None, context=None) -> dict:
     # Convert flattened list back to a clean DataFrame for SQL operations
     data = pd.DataFrame(flattened_data)
 
+    # Filters out data that should not be loaded into the RDS based on the 'skip_etl' flag
+    logging.info("Filtering out data with 'skip_etl' set to True")
+    new_data = data[data['skip_etl'] == False]
+
     # Loads the data into the RDS
-    load(data)
+    load(new_data)
 
     return {
         "statusCode": 200,

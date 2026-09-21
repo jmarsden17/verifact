@@ -1,6 +1,7 @@
 """Handler to extract claims from user-provided text."""
 
 import os
+import logging
 from openai import OpenAI
 from dotenv import load_dotenv
 from extract_llm import get_claims_from_user
@@ -9,17 +10,27 @@ from db_connection import find_most_similar_claim
 
 def handler(event, context):
     """Handler to extract claims from user-provided text and find similar claims in the database."""
+    logging.basicConfig(level=logging.INFO)
+
     load_dotenv()
     input_text = event.get("user_text", "")
+
+    logging.info("Extracting claims from inputted text.")
     analysis = get_claims_from_user(input_text)
     claims = []
+    logging.info(
+        "Processing each claim to find similar claims in the database.")
     for claim in analysis["claims"]:
         if claim["verification_method"] == "external_search":
+            logging.info("Generating embedding for claim: %s", claim["text"])
             claim["embedding"] = generate_embeddings(claim["text"])
 
+            logging.info("Finding most similar claim in the database.")
             similar_claim, similarity, verdict, summary, technique = find_most_similar_claim(
                 claim["embedding"])
 
+            logging.info(
+                "Most similar claim found: %s with similarity: %s", similar_claim, similarity)
             claim["similar_claim"] = similar_claim
             claim["similarity"] = similarity
             claim["verdict"] = verdict
@@ -53,4 +64,3 @@ def generate_embeddings(claim: str) -> list[float]:
     )
     embedding_vector = response.data[0].embedding
     return embedding_vector
-
