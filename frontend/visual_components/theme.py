@@ -32,9 +32,9 @@ COLOUR_UNCLEAR_BG = "#F1F5F9"
 COLOUR_UNCLEAR_FG = "#64748B"
 
 # Gradient bar colours
-GRADIENT_LOW_SCORE = "#112459"
+GRADIENT_HIGH_SCORE = "#112459"
 GRADIENT_MID_SCORE = "#3C71E6"
-GRADIENT_HIGH_SCORE = "#C3DDFA"
+GRADIENT_LOW_SCORE = "#C3DDFA"
 
 # Verdict lookups - single source of truth shared by badges and charts
 VERDICT_ORDER = ["Supported", "Contradicted", "Missing Context", "Unclear"]
