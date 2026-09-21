@@ -22,7 +22,7 @@ def get_connection():
         )
         register_vector(conn)
     except Exception as e:
-        logging.error(f"Error connecting to database: {e}")
+        logging.error("Error connecting to database: %s", e)
         raise
     return conn
 
@@ -53,13 +53,13 @@ def find_most_similar_claim(query_embedding):
                 FROM matched_claims m
                 LEFT JOIN verdict v USING (verdict_id)
                 LEFT JOIN technique t USING (technique_id);
-                """
+                """,
                 (query_embedding, query_embedding, query_embedding)
             )
             row = cur.fetchone()
             conn.commit()
     except Exception as e:
-        logging.error(f"Error executing query: {e}")
+        logging.error("Error executing query: %s", e)
         raise
     finally:
         conn.close()
