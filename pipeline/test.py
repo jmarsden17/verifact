@@ -6,11 +6,10 @@ from transform_load import handler_collate_results, load, transform, summary, su
 
 if __name__ == "__main__":
     event = {
-        'user_text': 'Harry and Megan are going back to America'
-        ''
+        'user_text': 'Donald Trump opened the strait of Hormuz'
     }
     event = handler_extract_claims.handler(event, None)
-    event['source_name'] = 'Full Fact'
+    event['source_name'] = 'BBC Verify'
     event['source_url'] = 'https://www.bbc.co.uk/news/articles'
 
     event = handler_verify_claim.handler(event, None)
