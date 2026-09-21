@@ -3,9 +3,9 @@
 import pytest
 import pandas as pd
 from streamlit.testing.v1 import AppTest
-import functions as fn
-import visuals as vis
-import theme
+from utils import db as fn
+from components import visuals as vis
+from components import theme
 
 # Successful path tests
 

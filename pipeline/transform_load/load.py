@@ -148,18 +148,23 @@ def add_claim_source_to_database(conn: connection, data: list[tuple]) -> None:
         conn.commit()
 
 
-def format_claim_insert(claims: dict, verdicts: dict, techniques: dict) -> list[tuple]:
+def format_claim_insert(claims: list[dict], verdicts: dict, techniques: dict) -> list[tuple]:
     """Returns a formatted list of tuples for insertion"""
     formatted_tuple = []
     for claim in claims:
-        formatted_tuple.append((
-            claim['claim'],
-            verdicts[claim['verdict']],
-            techniques[claim['technique']],
-            claim['summary'],
-            claim['claim_embedding'],
-            claim['confidence_score']
-        ))
+        verdict = claim['verdict']
+        technique = claim['technique']
+        if verdict in verdicts and technique in techniques:
+            formatted_tuple.append((
+                claim['claim'],
+                verdicts[verdict],
+                techniques[technique],
+                claim['summary'],
+                claim['claim_embedding'],
+                claim['confidence_score']
+            ))
+        else:
+            logging.warning("Skipping claim value: %s", claim)
     return formatted_tuple
 
 
@@ -168,10 +173,18 @@ def format_claim_tags_insert(claim_tags: list[dict]) -> list[tuple]:
     formatted_insert = []
     for item in claim_tags:
         for tag_id in item['tags_id']:
-            formatted_insert.append((
-                int(item['claim_id']),
-                int(tag_id)
-            ))
+            try:
+                formatted_insert.append((
+                    int(item['claim_id']),
+                    int(tag_id)
+                ))
+            except (TypeError, ValueError) as e:
+                logging.warning(
+                    "Skipping claim source value:\nclaim_id=%r, tag_id=%r\nError: %r",
+                    item['claim_id'],
+                    tag_id,
+                    e
+                )
     return formatted_insert
 
 
@@ -179,22 +192,32 @@ def format_sources_insert(sources: list[dict], outlets) -> list[tuple]:
     """Returns a formatted list of tuples for insertion"""
     formatted_sources = []
     for source in sources:
-        formatted_sources.append((
-            source['sources'],
-            source['source_reasoning'],
-            outlets[source['source_name']]
-        ))
+        outlet_name = source['source_name']
+        if outlet_name in outlets:
+            formatted_sources.append((
+                source['sources'],
+                source['source_reasoning'],
+                outlets[outlet_name]
+            ))
     return formatted_sources
 
 
-def format_claim_source_insert(claim_sources: dict) -> list[tuple]:
+def format_claim_source_insert(claim_sources: list[dict]) -> list[tuple]:
     """Returns a formatted list of tuples for insertion"""
     formatted_insert = []
     for item in claim_sources:
-        formatted_insert.append((
-            int(item['claim_id']),
-            int(item['source_id'])
-        ))
+        try:
+            formatted_insert.append((
+                int(item['claim_id']),
+                int(item['source_id'])
+            ))
+        except (TypeError, ValueError) as e:
+            logging.warning(
+                "Skipping claim source value:\nclaim_id=%r, source_id=%r\nError: %r",
+                item['claim_id'],
+                item['source_id'],
+                e
+            )
     return formatted_insert
 
 
@@ -249,9 +272,8 @@ def main_claim_source_insertion_function(conn: connection, data: pd.DataFrame) -
     add_claim_source_to_database(conn, formatted_claim_source)
 
 
-def handler(event=None, context=None) -> dict:
-    """Main handler function for Lambda"""
-
+def load(data: pd.DataFrame) -> None:
+    """Loads data into the pipeline"""
     # Set up:
     logging.basicConfig(level=logging.INFO)
     load_dotenv()
@@ -261,46 +283,6 @@ def handler(event=None, context=None) -> dict:
     if conn is None:
         raise SystemExit(1)
     logging.info("Successfully connected to the database")
-
-    # TODO: Get data from extract:
-    list_parallel = [event]
-    input_event = {
-        'statusCode': 200,
-        'body': list_parallel
-    }
-    logging.info("Reformatting main input data")
-    combined = combine_main(input_event['body'])
-    verdict_list = []
-    for key in combined:
-        verdicts = combined[key]['verdicts']
-        for verdict in verdicts:
-            verdict['claim'] = key
-            verdict['summary'] = combined[key]['summary']['summary']
-            verdict['confidence_score'] = combined[key]['summary']['confidence_score']
-        verdict_list.append(verdicts)
-        verdict_list.append(combined[key]['summary'])
-    logging.info("Finished reformatting main input data")
-    logging.info("Received data to transform")
-
-    # Transform raw data to DataFrame
-    df = transform(verdict_list)
-    print(df)
-    logging.info("Transformed data")
-
-    # Extract records and flatten the DataFrame
-    records = df.to_dict(orient='records')
-    flattened_data = [
-        val
-        for row in records
-        for key, val in row.items()
-        if isinstance(val, dict) and val.get("claim")
-    ]
-    flattened_data = transform(flattened_data)
-    with pd.option_context("display.max_columns", None, "display.width", None):
-        print(flattened_data)
-
-    # Convert flattened list back to a clean DataFrame for SQL operations
-    data = pd.DataFrame(flattened_data)
 
     # Insert into claim table:
     claim_map = main_claim_insertion_function(conn, data)
@@ -321,8 +303,3 @@ def handler(event=None, context=None) -> dict:
     # Insert into claim_source table:
     main_claim_source_insertion_function(conn, data)
     logging.info("Successfully added claim_source to database")
-
-    return {
-        "statusCode": 200,
-        "body": data.to_dict(orient='records')
-    }

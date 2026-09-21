@@ -24,6 +24,8 @@ TECHNIQUE_TAGS = [
 VERDICTS = ["Supported", "Contradicted",
             "Mixed / Missing Context", "Unclear / Not enough evidence"]
 
+OUTLETS = ['Reuters Fact Check', 'BBC Verify', 'Full Fact', 'Wikipedia API']
+
 
 def clean_list_value(value):
     """Return value if it's a list, else an empty list."""
@@ -61,6 +63,8 @@ def clean_categorical_value(value, allowed: list[str], category: str) -> str:
         return 'None'
     if category == "VERDICT":
         return 'Unclear / Not enough evidence'
+    if category == 'OUTLETS':
+        return None
 
 
 def clean_categorical_list(values, allowed: list[str]) -> list[str]:
@@ -160,6 +164,8 @@ def transform(records: list[dict]) -> pd.DataFrame:
 
     df = ensure_column(df, "source_name", "")
     df["source_name"] = df["source_name"].apply(clean_text_value)
+    df["source_name"] = df["source_name"].apply(
+        lambda v: clean_categorical_value(v, OUTLETS, 'OUTLETS'))
 
     df = ensure_column(df, "claim_url", None)
     df["claim_url"] = df["claim_url"].apply(

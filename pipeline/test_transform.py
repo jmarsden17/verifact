@@ -1,3 +1,5 @@
+# pylint: skip-file
+
 """Tests for transform script."""
 
 from transform_load.transform import (
@@ -17,6 +19,7 @@ VERDICTS = ["Supported", "Contradicted",
             "Mixed / Missing Context", "Unclear / Not enough evidence"]
 TECHNIQUES = ["Deepfake", "Misleading Context", "None"]
 TOPICS = ["Europe", "Media Journalism", "Technology"]
+OUTLETS = ['BBC', 'Wiki', 'Google']
 
 
 def test_clean_list_value_keeps_a_list_as_is():
@@ -126,22 +129,36 @@ def test_filter_tags_defaults_to_no_exclusions():
 
 def test_clean_categorical_value_keeps_real_casing():
     """A valid value is returned in its real (allowed-list) casing, not lowercased."""
-    assert clean_categorical_value("supported", VERDICTS) == "Supported"
+    assert clean_categorical_value(
+        "supported", VERDICTS, 'VERDICT') == "Supported"
 
 
 def test_clean_categorical_value_converts_invalid_value_to_unknown():
-    """A value not in the allowed list becomes 'unknown'."""
-    assert clean_categorical_value("nonsense", VERDICTS) == "unknown"
+    """A value not in the allowed list becomes 'Unclear / Not enough evidence'."""
+    assert clean_categorical_value(
+        "nonsense", VERDICTS, 'VERDICT') == "Unclear / Not enough evidence"
 
 
 def test_clean_categorical_value_converts_none_to_unknown():
-    """None becomes 'unknown'."""
-    assert clean_categorical_value(None, VERDICTS) == "unknown"
+    """None becomes 'Unclear / Not enough evidence'."""
+    assert clean_categorical_value(
+        None, VERDICTS, 'VERDICT') == "Unclear / Not enough evidence"
 
 
 def test_clean_categorical_value_is_case_insensitive():
     """Matching against the allowed list ignores input casing, but returns the allowed list's own casing."""
-    assert clean_categorical_value("Contradicted".lower(), VERDICTS) == "Contradicted"
+    assert clean_categorical_value(
+        "Contradicted".lower(), VERDICTS, 'VERDICT') == "Contradicted"
+
+
+def test_clean_categorical_value_unknown_responses():
+    """Checks the responses for each category if it doesn't exist in the database"""
+    assert clean_categorical_value('abc', TOPICS, 'TOPIC_TAGS') == 'Other'
+    assert clean_categorical_value(
+        'abc', TECHNIQUES, 'TECHNIQUE_TAGS') == 'None'
+    assert clean_categorical_value(
+        'abc', VERDICTS, 'VERDICT') == 'Unclear / Not enough evidence'
+    assert clean_categorical_value('abc', OUTLETS, 'OUTLETS') is None
 
 
 def test_clean_categorical_list_keeps_only_allowed_values():
@@ -261,7 +278,7 @@ def test_transform_handles_invalid_technique():
 
     df = transform(records)
 
-    assert df.iloc[0]["technique"] == "unknown"
+    assert df.iloc[0]["technique"] == "None"
 
 
 def test_transform_produces_clean_dataframe_for_skip_etl_branch():

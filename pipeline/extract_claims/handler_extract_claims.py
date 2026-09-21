@@ -65,11 +65,3 @@ def generate_embeddings(claim: str) -> list[float]:
     embedding_vector = response.data[0].embedding
     return embedding_vector
 
-
-if __name__ == "__main__":
-
-    event = {
-        'user_text': 'The earth is flat. Vaccines causes autism. The sky is green. The moon is made of cheese. '
-    }
-
-    print(handler(event, None))
