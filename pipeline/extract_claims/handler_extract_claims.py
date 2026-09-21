@@ -22,7 +22,7 @@ def handler(event, context):
         "Processing each claim to find similar claims in the database.")
     for claim in analysis["claims"]:
         if claim["verification_method"] == "external_search":
-            logging.info(f"Generating embedding for claim: {claim['text']}")
+            logging.info("Generating embedding for claim: %s", claim["text"])
             claim["embedding"] = generate_embeddings(claim["text"])
 
             logging.info("Finding most similar claim in the database.")
@@ -30,7 +30,7 @@ def handler(event, context):
                 claim["embedding"])
 
             logging.info(
-                f"Most similar claim found: {similar_claim} with similarity: {similarity}")
+                "Most similar claim found: %s with similarity: %s", similar_claim, similarity)
             claim["similar_claim"] = similar_claim
             claim["similarity"] = similarity
             claim["verdict"] = verdict
@@ -64,4 +64,3 @@ def generate_embeddings(claim: str) -> list[float]:
     )
     embedding_vector = response.data[0].embedding
     return embedding_vector
-
