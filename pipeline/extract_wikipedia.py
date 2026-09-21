@@ -52,8 +52,7 @@ def get_all_relevant_information(nlp, keywords: list[str]) -> str:
     return combined_text
 
 
-if __name__ == "__main__":
-
+def handler(event=None, context=None):
     logging.basicConfig(level=logging.INFO)
     nlp = load_spacy_model()
 
