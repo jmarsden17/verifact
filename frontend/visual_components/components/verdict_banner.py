@@ -11,7 +11,6 @@ VERDICT_MESSAGES = {
     "Unclear": ("?", "Not enough evidence to reach a verdict."),
 }
 
-# (Background Soft Tint, Dark Text/Icon, Border Tint)
 VERDICT_THEMES = {
     "Contradicted": (theme.COLOUR_DANGER_BG, theme.COLOUR_DANGER_FG, "#FECDD3"),
     "Supported": (theme.COLOUR_SUCCESS_BG, theme.COLOUR_SUCCESS_FG, "#A7F3D0"),
@@ -21,6 +20,8 @@ VERDICT_THEMES = {
 
 
 def render_verdict_banner(rating: str):
+    """Render a banner indicating the verdict of a claim."""
+
     rating_key = rating if rating in VERDICT_MESSAGES else "Unclear"
     bg, fg, border = VERDICT_THEMES.get(rating_key, VERDICT_THEMES["Unclear"])
     glyph, message = VERDICT_MESSAGES[rating_key]

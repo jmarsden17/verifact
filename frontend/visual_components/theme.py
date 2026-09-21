@@ -10,7 +10,6 @@ COLOUR_TEXT_MAIN = "#0F172A"
 COLOUR_TEXT_MUTED = "#64748B"
 
 # Accent colour - buttons, active nav, key numbers, links.
-# Change these to re-skin the app.
 COLOUR_PRIMARY = "#2563EB"
 COLOUR_PRIMARY_HOVER = "#1D4ED8"
 COLOUR_PRIMARY_DARK = "#1E3A8A"
@@ -58,6 +57,7 @@ VERDICT_BADGE_DEFAULT = (COLOUR_APP_BG, COLOUR_TEXT_MAIN, "ℹ️")
 
 def inject_custom_theme():
     """Inject global CSS rules for custom palette and UI scaffolding."""
+
     custom_css = f"""
     <style>
         /* Global Reset */

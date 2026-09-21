@@ -1,7 +1,6 @@
 """Charts about a single verification result - confidence gauge and verdict donut."""
 
 import math
-
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go

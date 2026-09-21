@@ -1,20 +1,17 @@
 """Card used in the Latest Disproven Claims feed."""
 
 import json
-
 import pandas as pd
 import streamlit as st
-
 from .. import theme
 from .html_utils import domain_of, esc, safe_url
 
-# verdict -> (background, foreground, icon)
 VERDICT_STYLES = {
     "Contradicted": (theme.COLOUR_DANGER_BG, theme.COLOUR_DANGER_FG, "✖"),
     "Missing Context": (theme.COLOUR_WARNING_BG, theme.COLOUR_WARNING_FG, "⚠️"),
 }
 SUMMARY_MAX_CHARS = 240
-RECENT_DAYS = 14  # show "3 days ago" up to this many days, then a full date
+RECENT_DAYS = 14  # show "3 days ago" up to this many days, then a full date afterwards
 
 
 def _clean(value):
@@ -39,7 +36,7 @@ def _relative_date(value) -> str | None:
 
     ts = pd.to_datetime(value, errors="coerce")
     if pd.isna(ts):
-        return str(value)  # already human text, e.g. "10m ago"
+        return str(value)
     if ts.tzinfo is not None:
         ts = ts.tz_localize(None)
 
@@ -87,7 +84,7 @@ def _sources_html(source_links, publishers) -> str:
 
 
 def _meta_text(row) -> str:
-    """'Published 3 days ago · Checked 12 times'."""
+    """Generate meta text for a claim."""
 
     parts = []
 
@@ -123,12 +120,12 @@ def render_disproven_claim_card(row):
         f'<div class="feed-card__summary">{esc(summary)}</div>' if summary else ""
     )
 
-    sources_html = _sources_html(row.get("source_links"), row.get("publishers"))
+    sources_html = _sources_html(
+        row.get("source_links"), row.get("publishers"))
     sources_block = (
         f'<div class="feed-card__sources">{sources_html}</div>' if sources_html else ""
     )
 
-    # One HTML block with no blank lines so Markdown doesn't break it up
     st.markdown(
         f'<div class="feed-card" style="--verdict-bg: {bg}; --verdict-fg: {fg};">'
         '<div class="feed-card__top">'

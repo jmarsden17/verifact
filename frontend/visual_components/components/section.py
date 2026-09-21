@@ -1,12 +1,11 @@
 """Section headings used inside pages."""
 
 import streamlit as st
-
 from .. import theme
 
 
 def render_section_heading(title: str, description: str = "", level: int = 3):
-    """Render a heading (### by default) with an optional muted description underneath."""
+    """Render a heading with an optional muted description underneath."""
 
     st.markdown(f"{'#' * level} {title}")
     if description:

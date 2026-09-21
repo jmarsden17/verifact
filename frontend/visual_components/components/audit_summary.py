@@ -1,12 +1,12 @@
 """Overview card for a multi-claim paragraph audit."""
 
 import streamlit as st
-
 from ..charts.verdict import build_accuracy_donut
 from .chart_display import show_chart
 
 
 def _count(results: list, rating: str) -> int:
+    """Count the number of claims with the given rating in the results list."""
     return sum(1 for r in results if r.get("rating") == rating)
 
 
@@ -21,7 +21,8 @@ def render_audit_summary(results: list):
     missing_ctx = _count(results, "Missing Context")
     unclear = _count(results, "Unclear")
 
-    accuracy_pct = round((supported / total_claims) * 100) if total_claims > 0 else 0
+    accuracy_pct = round((supported / total_claims) *
+                         100) if total_claims > 0 else 0
 
     with st.container(border=True):
         col_stats, col_chart = st.columns([1.5, 1])

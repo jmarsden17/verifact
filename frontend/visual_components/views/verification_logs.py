@@ -1,13 +1,11 @@
 """Verification Logs page: searchable table of past claim checks."""
 
 import streamlit as st
-
 from database_conns import fetch_data as fn
-
 from .. import theme
 from ..components.header import render_page_header
 
-# Database column -> label shown in the table
+# Database columns
 LOG_COLUMNS = {
     "timestamp": "Timestamp",
     "claim_statement": "Claim Statement",

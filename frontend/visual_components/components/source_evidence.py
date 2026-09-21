@@ -1,9 +1,7 @@
 """Source details for a claim, shown in a dropdown under the claim overview."""
 
 import re
-
 import streamlit as st
-
 from .html_utils import esc, safe_url
 from .. import theme
 
@@ -62,7 +60,6 @@ def render_source_evidence(sources: list):
 
     with st.expander(f"📚 Source details ({len(sources)}) — {', '.join(outlets)}",
                      expanded=False):
-        # One HTML block with no blank lines so Markdown doesn't break it up
         cards = "".join(_source_card(src) for src in sources)
         st.markdown(f'<div class="source-grid">{cards}</div>',
                     unsafe_allow_html=True)

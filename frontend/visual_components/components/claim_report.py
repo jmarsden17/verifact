@@ -1,7 +1,6 @@
-"""One expandable report per extracted claim: verdict up top, sources underneath."""
+"""One expandable report per extracted claim: verdict on top, sources underneath."""
 
 import streamlit as st
-
 from ..charts.verdict import build_confidence_gauge
 from .chart_display import show_chart
 from .html_utils import esc
@@ -17,7 +16,7 @@ TITLE_MAX_CHARS = 80
 
 
 def _render_claim_heading(idx: int, total: int, claim_text: str):
-    """'CLAIM 1 OF 3' label with the statement being checked underneath."""
+    """Label with the statement being checked underneath."""
 
     st.markdown(
         f'<div class="claim-label">Claim {idx+1} of {total}</div>'
@@ -27,7 +26,7 @@ def _render_claim_heading(idx: int, total: int, claim_text: str):
 
 
 def _render_reasoning_and_confidence(item: dict, rating: str, idx: int):
-    # Expanded text column ratio to balance the gauge
+    """Render the reasoning explanation and confidence gauge for a claim."""
     col_reasoning, col_gauge = st.columns(
         [2.2, 1], vertical_alignment="top")
 
@@ -46,7 +45,7 @@ def _render_reasoning_and_confidence(item: dict, rating: str, idx: int):
 
 
 def render_claim_reports(results: list):
-    """Claim -> verdict banner -> reasoning + confidence -> source dropdown, per claim."""
+    """Render individual claim reports for a list of extracted claims."""
 
     st.markdown("### 🔍 Individual Extracted Claim Reports")
 
