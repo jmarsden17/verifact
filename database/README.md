@@ -36,7 +36,7 @@ The seed inserts use `ON CONFLICT ... DO NOTHING`, so those parts can be run aga
 
 ## Data model
 
-![Database ERD](erd.png)
+![Database ERD](../erd.png)
 
 There are eight tables. `claim` is the main one. `verdict`, `technique`, `tags` and `outlet` are lookup tables. `claim_tags` and `claim_source` link claims to their tags and sources, and each `source` belongs to an `outlet`.
 
