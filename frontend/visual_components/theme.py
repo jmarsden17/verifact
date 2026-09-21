@@ -8,8 +8,14 @@ COLOUR_CARD_BG = "#FFFFFF"
 COLOUR_BORDER = "#E2E8F0"
 COLOUR_TEXT_MAIN = "#0F172A"
 COLOUR_TEXT_MUTED = "#64748B"
-COLOUR_PRIMARY = "#6A8EAE"
-COLOUR_PRIMARY_HOVER = "#4A6E91"
+
+# Accent ("look at me") colour - buttons, active nav, key numbers, links.
+# Change these to re-skin the app. Other option: deep navy "#1E3A8A".
+COLOUR_PRIMARY = "#2563EB"
+COLOUR_PRIMARY_HOVER = "#1D4ED8"
+COLOUR_PRIMARY_DARK = "#1E3A8A"   # text on soft backgrounds, logo strokes
+COLOUR_PRIMARY_SOFT = "#DBEAFE"   # tinted backgrounds (active nav, chips)
+COLOUR_PRIMARY_RGB = "37, 99, 235"  # same as COLOUR_PRIMARY, for shadows
 
 # Semantic Colours - Modern Emerald / Rose / Amber
 COLOUR_SUCCESS_BG = "#E6F4EA"
@@ -23,6 +29,26 @@ COLOUR_WARNING_FG = "#F59E0B"
 
 COLOUR_UNCLEAR_BG = "#F1F5F9"
 COLOUR_UNCLEAR_FG = "#64748B"
+
+# Verdict lookups - single source of truth shared by badges and charts
+VERDICT_ORDER = ["Supported", "Contradicted", "Missing Context", "Unclear"]
+
+# Solid colour per verdict (charts)
+VERDICT_CHART_COLOURS = {
+    "Supported": COLOUR_SUCCESS_FG,
+    "Contradicted": COLOUR_DANGER_FG,
+    "Missing Context": COLOUR_WARNING_FG,
+    "Unclear": COLOUR_UNCLEAR_FG,
+}
+
+# (background, text colour, icon) per verdict (badges)
+VERDICT_BADGES = {
+    "Contradicted": (COLOUR_DANGER_BG, COLOUR_DANGER_FG, "❌"),
+    "Supported": (COLOUR_SUCCESS_BG, COLOUR_SUCCESS_FG, "✅"),
+    "Missing Context": (COLOUR_WARNING_BG, COLOUR_WARNING_FG, "⚠️"),
+    "Unclear": (COLOUR_APP_BG, COLOUR_TEXT_MAIN, "❓"),
+}
+VERDICT_BADGE_DEFAULT = (COLOUR_APP_BG, COLOUR_TEXT_MAIN, "ℹ️")
 
 
 def inject_custom_theme():
@@ -72,6 +98,17 @@ def inject_custom_theme():
             font-weight: 500 !important;
         }}
 
+        /* Active navigation item */
+        [data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) {{
+            background-color: {COLOUR_PRIMARY_SOFT};
+            border-radius: 8px;
+        }}
+
+        [data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) span {{
+            color: {COLOUR_PRIMARY_DARK} !important;
+            font-weight: 700 !important;
+        }}
+
         /* Inputs & Textareas */
         .stTextArea textarea, .stTextInput input {{
             border-radius: 8px !important;
@@ -80,6 +117,11 @@ def inject_custom_theme():
             color: {COLOUR_TEXT_MAIN} !important;
             padding: 10px 12px !important;
             font-size: 15px !important;
+        }}
+
+        .stTextArea textarea:focus, .stTextInput input:focus {{
+            border-color: {COLOUR_PRIMARY} !important;
+            box-shadow: 0 0 0 1px {COLOUR_PRIMARY} !important;
         }}
 
         .stTextArea textarea::placeholder, .stTextInput input::placeholder {{
@@ -97,6 +139,7 @@ def inject_custom_theme():
             font-weight: 600 !important;
             font-size: 14px !important;
             border: none !important;
+            box-shadow: 0 2px 8px rgba({COLOUR_PRIMARY_RGB}, 0.30) !important;
         }}
 
         div.stButton > button:hover, div.stFormSubmitButton > button:hover {{
@@ -106,6 +149,126 @@ def inject_custom_theme():
         [data-testid="stForm"] {{
             border: none !important;
             padding: 0 !important;
+        }}
+
+        /* Key numbers draw the eye */
+        [data-testid="stMetricValue"] {{
+            color: {COLOUR_PRIMARY_DARK} !important;
+            font-weight: 800 !important;
+        }}
+
+        /* Chips (small labels and links) */
+        .chip {{
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            border: 1px solid {COLOUR_BORDER};
+            background-color: #FFFFFF;
+            color: {COLOUR_TEXT_MAIN};
+        }}
+
+        .chip-accent {{
+            background-color: {COLOUR_PRIMARY_SOFT};
+            border-color: {COLOUR_PRIMARY_SOFT};
+            color: {COLOUR_PRIMARY_DARK};
+        }}
+
+        a.chip-link {{
+            color: {COLOUR_PRIMARY} !important;
+            text-decoration: none !important;
+        }}
+
+        a.chip-link:hover {{
+            background-color: {COLOUR_PRIMARY_SOFT};
+            border-color: {COLOUR_PRIMARY};
+        }}
+
+        .verdict-pill {{
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            background-color: var(--verdict-bg);
+            color: var(--verdict-fg);
+        }}
+
+        /* Feed cards (Latest Disproven Claims) */
+        .feed-card {{
+            background-color: {COLOUR_CARD_BG};
+            border: 1px solid {COLOUR_BORDER};
+            border-left: 5px solid var(--verdict-fg, {COLOUR_PRIMARY});
+            border-radius: 12px;
+            padding: 18px 20px;
+            margin-bottom: 14px;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+            transition: box-shadow 0.15s ease, transform 0.15s ease;
+        }}
+
+        .feed-card:hover {{
+            box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+            transform: translateY(-1px);
+        }}
+
+        .feed-card__top {{
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 10px;
+        }}
+
+        .feed-card__meta {{
+            margin-left: auto;
+            font-size: 12px;
+            font-weight: 500;
+            color: {COLOUR_TEXT_MUTED};
+        }}
+
+        .feed-card__claim {{
+            font-size: 18px;
+            font-weight: 700;
+            line-height: 1.35;
+            color: {COLOUR_TEXT_MAIN};
+        }}
+
+        .feed-card__summary {{
+            margin-top: 8px;
+            font-size: 14px;
+            line-height: 1.5;
+            color: {COLOUR_TEXT_MUTED};
+        }}
+
+        .feed-card__sources {{
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 14px;
+        }}
+
+        /* Source cards (inside each claim report) */
+        .source-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 12px;
+            margin-bottom: 8px;
+        }}
+
+        .source-card {{
+            background-color: {COLOUR_APP_BG};
+            border-left: 3px solid {COLOUR_PRIMARY};
+            border-radius: 0 8px 8px 0;
+            padding: 12px 16px;
+            font-size: 14px;
+            line-height: 1.5;
+        }}
+
+        .source-card__excerpt {{
+            margin: 8px 0 10px 0;
         }}
 
         .ui-card {{
