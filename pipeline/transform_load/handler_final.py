@@ -1,8 +1,10 @@
 """
 Main handler file for the lambda function
 """
-import pandas as pd
 import logging
+import json
+import boto3
+import pandas as pd
 from transform import transform
 from collate_results import combine_main
 from load import load
@@ -12,8 +14,19 @@ def handler(event=None, context=None) -> dict:
     """Main handler function for Lambda"""
     logging.basicConfig(level=logging.INFO)
 
-    results = event.get("results", [])
-    skipped = event.get("skipped", [])
+    s3_client = boto3.client('s3')
+    bucket_name = event['s3_reference']['bucket']
+    extract_key = event['s3_reference']['key']
+
+    response = s3_client.get_object(Bucket=bucket_name, Key=extract_key)
+
+    content_bytes = response['Body'].read()
+    content_string = content_bytes.decode('utf-8')
+
+    new_event = json.loads(content_string)
+
+    results = new_event.get("results", [])
+    skipped = new_event.get("skipped", [])
 
     # Get data from extract:
 
