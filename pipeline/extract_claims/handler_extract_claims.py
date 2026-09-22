@@ -2,13 +2,15 @@
 
 import os
 import logging
+import json
 from openai import OpenAI
 from dotenv import load_dotenv
+import boto3
 from extract_llm import get_claims_from_user
 from db_connection import find_most_similar_claim
 
 
-def handler(event, context):
+def handler(event=None, context=None):
     """Handler to extract claims from user-provided text and find similar claims in the database."""
     logging.basicConfig(level=logging.INFO)
 
@@ -44,11 +46,32 @@ def handler(event, context):
         else:
             claim["skip_etl"] = False
 
-    return {
+    # The return values to pass to next Lambda
+    return_values = json.dumps({
         "statusCode": 200,
         "body": {
             "to_process": [c for c in claims if not c.get("skip_etl")],
             "skipped":    [c for c in claims if c.get("skip_etl")],
+        }
+    })
+
+    # Upload to S3
+    s3_client = boto3.client('s3')
+    key = 'extract_claims.json'
+    s3_client.put_object(
+        Bucket='c25-disinformation-lambda',
+        Key=key,
+        Body=return_values,
+        ContentType='application/json'
+    )
+
+    logging.info('Successfully loaded values into S3 Bucket')
+
+    return {
+        "statusCode": 200,
+        "s3_reference": {
+            "bucket": "c25-disinformation-lambda",
+            "key": key
         }
     }
 
