@@ -18,15 +18,32 @@ def generate_summary(grouped_claims: list[dict]) -> SummaryResult:
         outlet_claims = grouped_claims[key]
 
         prompt = f"""
-        Summarize the following claims and their corresponding verdicts into a concise summary
-        that captures the overall consensus and key points. The summary should be clear, neutral, and informative. It should
-        be clear to point out opposing verdicts and highlight any areas of agreement or disagreement. The summary should be structured
-        in a way that is easy to read and understand. The 'reasoning' and 'verdict' fields should be used to inform the summary, but the
-        summary should not simply repeat these fields verbatim. You should also include a 'confidence score' for the summary as a number
-        between 0 and 1 which indicates the agreement level between the different sources. Verdicts that are 'Unclear / Not enough evidence' should
-        reduce confidence, however not as significantly as directly contradicting verdicts. Only when all sources agree should the confidence score be
-        over 0.9.:
+        Summarize the following claims and their corresponding verdicts into a concise, neutral summary.
 
+        AGGREGATION RULES (apply before writing anything):
+        - Treat "Unclear / Not enough evidence" as an ABSTENTION, not a data point that pulls the
+        consensus toward "unclear". It means that source has no opinion — it does not count as
+        evidence against the claim being supported or contradicted.
+        - Determine the overall consensus using only the sources that took a clear position
+        (Supported/Contradicted/Misleading context/etc.). If a majority of those sources agree, state that as the
+        consensus, and separately note how many sources abstained.
+        - Only describe the overall picture as "unclear/not enough evidence" if the sources that DID
+        take a position are themselves split or contradictory (e.g., one says Supported, one says Contradicted).
+        Abstentions alone should never be the reason you call something unclear UNLESS all sources abstained.
+        - If sources disagree, explicitly say so and describe the disagreement — don't average it
+        into a mushy middle verdict.
+
+        CONFIDENCE SCORE RULES:
+        - Base confidence on agreement among sources that took a clear position.
+        - Abstentions ("Unclear / Not enough evidence") should modestly lower confidence, since they
+        reduce the amount of corroborating evidence — but should not lower it as much as an actual
+        contradicting verdict would.
+        - Only score above 0.9 if every source that took a position agrees, AND there are few or no
+        abstentions.
+
+        The 'reasoning' and 'verdict' fields should inform the summary, but do not repeat them verbatim.
+
+        Claims and verdicts:
         {outlet_claims}
         """
 

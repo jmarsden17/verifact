@@ -25,6 +25,7 @@ def handler(event=None, context=None) -> dict:
             verdict['claim'] = key
             verdict['summary'] = combined[key]['summary']['summary']
             verdict['confidence_score'] = combined[key]['summary']['confidence_score']
+            
         verdict_list.append(verdicts)
         verdict_list.append(combined[key]['summary'])
     logging.info("Received data to transform")
