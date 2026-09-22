@@ -10,7 +10,7 @@ from extract_llm import get_claims_from_user
 from db_connection import find_most_similar_claim
 
 
-def handler(event, context):
+def handler(event=None, context=None):
     """Handler to extract claims from user-provided text and find similar claims in the database."""
     logging.basicConfig(level=logging.INFO)
 
@@ -57,7 +57,7 @@ def handler(event, context):
 
     # Upload to S3
     s3_client = boto3.client('s3')
-    key = 'extract_claims.json'  # The destination path/filename in S3
+    key = 'extract_claims.json'
     s3_client.put_object(
         Bucket='c25-disinformation-lambda',
         Key=key,
