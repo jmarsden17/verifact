@@ -61,7 +61,7 @@ def clean_categorical_value(value, allowed: list[str], category: str) -> str:
         return 'Other'
     if category == "TECHNIQUE_TAGS":
         return 'None'
-    if category == "VERDICT":
+    if category == "VERDICTS":
         return 'Unclear / Not enough evidence'
     if category == 'OUTLETS':
         return None

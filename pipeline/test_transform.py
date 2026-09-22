@@ -1,6 +1,10 @@
 # pylint: skip-file
 
-"""Tests for transform script."""
+"""Tests for the transform script."""
+
+
+import pandas as pd
+import pytest
 
 from transform_load.transform import (
     clean_categorical_list,
@@ -10,219 +14,340 @@ from transform_load.transform import (
     clean_tag_list,
     clean_text_value,
     dedupe_list,
+    ensure_column,
     filter_tags,
     sort_tags,
     transform,
 )
 
+
+# ---------------------------------------------------------------------------
+# Test data
+# ---------------------------------------------------------------------------
+
 VERDICTS = ["Supported", "Contradicted",
             "Mixed / Missing Context", "Unclear / Not enough evidence"]
 TECHNIQUES = ["Deepfake", "Misleading Context", "None"]
 TOPICS = ["Europe", "Media Journalism", "Technology"]
-OUTLETS = ['BBC', 'Wiki', 'Google']
-
-
-def test_clean_list_value_keeps_a_list_as_is():
-    """A real list is returned unchanged."""
-    assert clean_list_value(["a", "b"]) == ["a", "b"]
-
-
-def test_clean_list_value_converts_none_to_empty_list():
-    """None becomes an empty list."""
-    assert not clean_list_value(None)
-
-
-def test_clean_list_value_converts_non_list_to_empty_list():
-    """A non-list value becomes an empty list."""
-    assert not clean_list_value("not a list")
-
-
-def test_clean_text_value_strips_whitespace():
-    """Leading/trailing whitespace is stripped from a string."""
-    assert clean_text_value("  hello  ") == "hello"
-
-
-def test_clean_text_value_converts_none_to_empty_string():
-    """None becomes an empty string."""
-    assert clean_text_value(None) == ""
-
-
-def test_clean_text_value_converts_non_string_to_empty_string():
-    """A non-string value becomes an empty string."""
-    assert clean_text_value(123) == ""
-
-
-def test_clean_float_value_keeps_a_float():
-    """A real float is returned unchanged."""
-    assert clean_float_value(0.94) == 0.94
-
-
-def test_clean_float_value_keeps_an_int():
-    """An int is returned unchanged."""
-    assert clean_float_value(1) == 1
-
-
-def test_clean_float_value_converts_none_to_none():
-    """None stays None."""
-    assert clean_float_value(None) is None
-
-
-def test_clean_float_value_converts_non_numeric_to_none():
-    """A non-numeric value becomes None."""
-    assert clean_float_value("not a number") is None
-
-
-def test_clean_float_value_converts_bool_to_none():
-    """A bool (technically an int subclass in Python) is rejected."""
-    assert clean_float_value(True) is None
-
-
-def test_filter_tags_removes_excluded_tags():
-    """Tags in the exclude list are removed."""
-    tags = ["fact-checking", "economy", "inflation"]
-
-    result = filter_tags(tags, exclude=["fact-checking"])
-
-    assert result == ["economy", "inflation"]
-
-
-def test_filter_tags_limits_to_five():
-    """No more than five tags are returned."""
-    tags = ["a", "b", "c", "d", "e", "f", "g"]
-
-    result = filter_tags(tags, exclude=[])
-
-    assert result == ["a", "b", "c", "d", "e"]
-
-
-def test_filter_tags_is_case_insensitive_for_exclusions():
-    """Exclusions match regardless of casing."""
-    tags = ["Fact-Checking", "economy"]
-
-    result = filter_tags(tags, exclude=["fact-checking"])
-
-    assert result == ["economy"]
-
-
-def test_filter_tags_accepts_custom_exclude_list():
-    """A caller-supplied exclude list is respected."""
-    tags = ["news", "economy", "inflation"]
-
-    result = filter_tags(tags, exclude=["news"])
-
-    assert result == ["economy", "inflation"]
-
-
-def test_filter_tags_handles_empty_list():
-    """An empty input returns an empty result."""
-    assert not filter_tags([], exclude=[])
-
-
-def test_filter_tags_defaults_to_no_exclusions():
-    """With no exclude list given, nothing is filtered out."""
-    tags = ["economy", "inflation"]
-
-    result = filter_tags(tags)
-
-    assert result == ["economy", "inflation"]
-
-
-def test_clean_categorical_value_keeps_real_casing():
-    """A valid value is returned in its real (allowed-list) casing, not lowercased."""
-    assert clean_categorical_value(
-        "supported", VERDICTS, 'VERDICT') == "Supported"
-
-
-def test_clean_categorical_value_converts_invalid_value_to_unknown():
-    """A value not in the allowed list becomes 'Unclear / Not enough evidence'."""
-    assert clean_categorical_value(
-        "nonsense", VERDICTS, 'VERDICT') == "Unclear / Not enough evidence"
-
-
-def test_clean_categorical_value_converts_none_to_unknown():
-    """None becomes 'Unclear / Not enough evidence'."""
-    assert clean_categorical_value(
-        None, VERDICTS, 'VERDICT') == "Unclear / Not enough evidence"
-
-
-def test_clean_categorical_value_is_case_insensitive():
-    """Matching against the allowed list ignores input casing, but returns the allowed list's own casing."""
-    assert clean_categorical_value(
-        "Contradicted".lower(), VERDICTS, 'VERDICT') == "Contradicted"
-
-
-def test_clean_categorical_value_unknown_responses():
-    """Checks the responses for each category if it doesn't exist in the database"""
-    assert clean_categorical_value('abc', TOPICS, 'TOPIC_TAGS') == 'Other'
-    assert clean_categorical_value(
-        'abc', TECHNIQUES, 'TECHNIQUE_TAGS') == 'None'
-    assert clean_categorical_value(
-        'abc', VERDICTS, 'VERDICT') == 'Unclear / Not enough evidence'
-    assert clean_categorical_value('abc', OUTLETS, 'OUTLETS') is None
-
-
-def test_clean_categorical_list_keeps_only_allowed_values():
-    """Values not in the allowed list are dropped."""
-    result = clean_categorical_list(
-        ["Europe", "Nonsense", "Technology"], TOPICS)
-    assert result == ["Europe", "Technology"]
-
-
-def test_clean_categorical_list_handles_non_list_input():
-    """A non-list value is treated as an empty list."""
-    assert not clean_categorical_list(None, TOPICS)
-
-
-def test_dedupe_list_removes_exact_duplicates():
-    """Exact duplicate values are removed."""
-    assert dedupe_list(["UK", "UK", "ONS"]) == ["UK", "ONS"]
-
-
-def test_dedupe_list_is_case_insensitive():
-    """Differently-cased duplicates are treated as the same value."""
-    assert dedupe_list(["UK", "uk", "ONS"]) == ["UK", "ONS"]
-
-
-def test_dedupe_list_preserves_order():
-    """The first occurrence of each value keeps its original position."""
-    assert dedupe_list(["b", "a", "b", "c"]) == ["b", "a", "c"]
-
-
-def test_dedupe_list_handles_empty_list():
-    """An empty input returns an empty result."""
-    assert not dedupe_list([])
-
-
-def test_sort_tags_sorts_alphabetically():
-    """Tags are returned in alphabetical order."""
-    assert sort_tags(["inflation", "economy", "finance"]) == [
-        "economy", "finance", "inflation"]
-
-
-def test_sort_tags_is_case_insensitive():
-    """Sorting ignores casing."""
-    assert sort_tags(["Zebra", "apple"]) == ["apple", "Zebra"]
-
-
-def test_sort_tags_handles_empty_list():
-    """An empty input returns an empty result."""
-    assert not sort_tags([])
-
-
-def test_clean_tag_list_dedupes_filters_and_validates():
-    """clean_tag_list drops invalid tags, dedupes, filters, and sorts."""
-    tags = ["fact-checking", "Europe",
-            "Nonsense Tag", "europe", "Media Journalism"]
-
-    result = clean_tag_list(tags, exclude=["fact-checking"])
-
-    assert result == ["Europe", "Media Journalism"]
-
-
-def test_clean_tag_list_handles_non_list_input():
-    """A non-list value is treated as an empty tag list."""
-    assert not clean_tag_list(None, exclude=[])
-
+OUTLETS = ["BBC", "Wiki", "Google"]
+
+
+# ---------------------------------------------------------------------------
+# Simple cleaning helpers
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("value, expected", [
+    pytest.param(["a", "b"], ["a", "b"], id="list"),
+    pytest.param([], [], id="empty list"),
+    pytest.param(None, [], id="none"),
+    pytest.param("not a list", [], id="string"),
+    pytest.param({"a": 1}, [], id="dict"),
+])
+def test_clean_list_value(value, expected):
+    """A list is kept as is, anything else becomes an empty list."""
+    assert clean_list_value(value) == expected
+
+
+@pytest.mark.parametrize("value, expected", [
+    pytest.param("  hello  ", "hello", id="padded string"),
+    pytest.param("hello", "hello", id="clean string"),
+    pytest.param("   ", "", id="only whitespace"),
+    pytest.param(None, "", id="none"),
+    pytest.param(123, "", id="number"),
+])
+def test_clean_text_value(value, expected):
+    """A string is stripped, anything else becomes an empty string."""
+    assert clean_text_value(value) == expected
+
+
+@pytest.mark.parametrize("value, expected", [
+    pytest.param(0.94, 0.94, id="float"),
+    pytest.param(1, 1, id="int"),
+    pytest.param(0, 0, id="zero"),
+    pytest.param(None, None, id="none"),
+    pytest.param("not a number", None, id="string"),
+    pytest.param(True, None, id="true"),
+    pytest.param(False, None, id="false"),
+])
+def test_clean_float_value(value, expected):
+    """A real number is kept, anything else (including bools) becomes None."""
+    assert clean_float_value(value) == expected
+
+
+# ---------------------------------------------------------------------------
+# Tag and category helpers
+# ---------------------------------------------------------------------------
+
+# filter_tags
+
+@pytest.mark.parametrize("tags, exclude, max_tags, expected", [
+    pytest.param(["fact-checking", "economy", "inflation"], ["fact-checking"], 5,
+                 ["economy", "inflation"], id="removes excluded tag"),
+    pytest.param(["Fact-Checking", "economy"], ["fact-checking"], 5,
+                 ["economy"], id="exclusion ignores case"),
+    pytest.param(["news", "economy", "inflation"], ["news"], 5,
+                 ["economy", "inflation"], id="custom exclude list"),
+    pytest.param(["economy", "inflation"], None, 5,
+                 ["economy", "inflation"], id="no exclude list"),
+    pytest.param(["a", "b", "c", "d", "e", "f", "g"], [], 5,
+                 ["a", "b", "c", "d", "e"], id="limits to five"),
+    pytest.param(["a", "b", "c", "d"], [], 2,
+                 ["a", "b"], id="custom limit"),
+    pytest.param(["skip", "a", "b", "c"], ["skip"], 2,
+                 ["a", "b"], id="excludes before limiting"),
+    pytest.param([], [], 5, [], id="empty list"),
+])
+def test_filter_tags(tags, exclude, max_tags, expected):
+    """Excluded tags are removed, then the result is capped at max_tags."""
+    assert filter_tags(tags, exclude=exclude, max_tags=max_tags) == expected
+
+
+def test_filter_tags_uses_defaults():
+    """With no exclude list or limit given, nothing is excluded and five are kept."""
+    tags = ["a", "b", "c", "d", "e", "f"]
+
+    assert filter_tags(tags) == ["a", "b", "c", "d", "e"]
+
+
+# clean_categorical_value
+
+@pytest.mark.parametrize("value, allowed, category, expected", [
+    # A valid value is returned in the allowed list's own casing
+    pytest.param("supported", VERDICTS, "VERDICTS", "Supported",
+                 id="verdict lowercase"),
+    pytest.param("CONTRADICTED", VERDICTS, "VERDICTS", "Contradicted",
+                 id="verdict uppercase"),
+    pytest.param("Supported", VERDICTS, "VERDICTS", "Supported",
+                 id="verdict exact match"),
+    pytest.param("europe", TOPICS, "TOPIC_TAGS", "Europe",
+                 id="topic"),
+    pytest.param("deepfake", TECHNIQUES, "TECHNIQUE_TAGS", "Deepfake",
+                 id="technique"),
+    pytest.param("bbc", OUTLETS, "OUTLETS", "BBC",
+                 id="outlet"),
+
+    # An invalid value falls back to a different default for each category
+    pytest.param("nonsense", VERDICTS, "VERDICTS", "Unclear / Not enough evidence",
+                 id="invalid verdict"),
+    pytest.param(None, VERDICTS, "VERDICTS", "Unclear / Not enough evidence",
+                 id="none as verdict"),
+    pytest.param("abc", TOPICS, "TOPIC_TAGS", "Other",
+                 id="invalid topic"),
+    pytest.param(123, TOPICS, "TOPIC_TAGS", "Other",
+                 id="number as topic"),
+    pytest.param("abc", TECHNIQUES, "TECHNIQUE_TAGS", "None",
+                 id="invalid technique"),
+    pytest.param("abc", OUTLETS, "OUTLETS", None,
+                 id="invalid outlet"),
+])
+def test_clean_categorical_value(value, allowed, category, expected):
+    """Valid values match ignoring case, invalid values use the category's fallback."""
+    assert clean_categorical_value(value, allowed, category) == expected
+
+
+# clean_categorical_list
+
+@pytest.mark.parametrize("values, expected", [
+    pytest.param(["Europe", "Nonsense", "Technology"], ["Europe", "Technology"],
+                 id="drops invalid values"),
+    pytest.param(["Nonsense"], [], id="all invalid"),
+    pytest.param([1, None, "Europe"], ["Europe"], id="drops non strings"),
+    pytest.param([], [], id="empty list"),
+    pytest.param(None, [], id="none"),
+    pytest.param("Europe", [], id="string instead of list"),
+])
+def test_clean_categorical_list(values, expected):
+    """Only values in the allowed list are kept, and non lists become empty."""
+    assert clean_categorical_list(values, TOPICS) == expected
+
+
+# dedupe_list
+
+@pytest.mark.parametrize("values, expected", [
+    pytest.param(["UK", "UK", "ONS"], ["UK", "ONS"], id="exact duplicates"),
+    pytest.param(["UK", "uk", "ONS"], ["UK", "ONS"], id="ignores case"),
+    pytest.param(["b", "a", "b", "c"], ["b", "a", "c"], id="keeps first position"),
+    pytest.param(["a", "b", "c"], ["a", "b", "c"], id="no duplicates"),
+    pytest.param([], [], id="empty list"),
+])
+def test_dedupe_list(values, expected):
+    """Case insensitive duplicates are removed and the first one keeps its place."""
+    assert dedupe_list(values) == expected
+
+
+# sort_tags
+
+@pytest.mark.parametrize("tags, expected", [
+    pytest.param(["inflation", "economy", "finance"],
+                 ["economy", "finance", "inflation"], id="alphabetical"),
+    pytest.param(["Zebra", "apple"], ["apple", "Zebra"], id="ignores case"),
+    pytest.param([], [], id="empty list"),
+])
+def test_sort_tags(tags, expected):
+    """Tags are sorted alphabetically, ignoring case."""
+    assert sort_tags(tags) == expected
+
+
+# clean_tag_list
+
+@pytest.mark.parametrize("tags, exclude, expected", [
+    pytest.param(["fact-checking", "Europe", "Nonsense Tag", "europe", "Media Journalism"],
+                 ["fact-checking"], ["Europe", "Media Journalism"],
+                 id="invalid, duplicate and excluded tags"),
+    pytest.param(["Media Journalism", "Europe"], None,
+                 ["Europe", "Media Journalism"], id="sorts tags"),
+    pytest.param(["Nonsense"], None, [], id="all invalid"),
+    pytest.param(None, [], [], id="none input"),
+    pytest.param(None, None, [], id="none input and no exclude list"),
+])
+def test_clean_tag_list(tags, exclude, expected):
+    """Invalid tags are dropped, duplicates removed, and the result sorted."""
+    assert clean_tag_list(tags, exclude=exclude) == expected
+
+
+# ---------------------------------------------------------------------------
+# ensure_column
+# ---------------------------------------------------------------------------
+
+def test_ensure_column_adds_missing_column_with_default():
+    """A missing column is added and filled with the default value."""
+    df = pd.DataFrame({"a": [1, 2]})
+
+    result = ensure_column(df, "b", "x")
+
+    assert result["b"].tolist() == ["x", "x"]
+
+
+def test_ensure_column_calls_callable_default_for_each_row():
+    """A callable default is called once per row, so rows don't share one object."""
+    df = pd.DataFrame({"a": [1, 2]})
+
+    result = ensure_column(df, "b", list)
+
+    assert result["b"].tolist() == [[], []]
+    assert result["b"][0] is not result["b"][1]
+
+
+def test_ensure_column_keeps_existing_column():
+    """A column that already exists is left alone."""
+    df = pd.DataFrame({"a": [1, 2]})
+
+    result = ensure_column(df, "a", 0)
+
+    assert result["a"].tolist() == [1, 2]
+
+
+# ---------------------------------------------------------------------------
+# transform
+# ---------------------------------------------------------------------------
+
+# One column at a time
+# Each case changes one field of an otherwise valid record, runs transform(),
+# and checks the cleaned value in the resulting column.
+
+def make_record(**overrides):
+    """A valid verdict record, with any fields replaced by the overrides."""
+    record = {
+        "claim": "A claim.",
+        "verdict": "Supported",
+        "reasoning": "A reason.",
+        "misinformation_type": "None",
+        "entities": [],
+        "tags": [],
+        "sources": [],
+        "source_name": "Full Fact",
+    }
+    record.update(overrides)
+    return record
+
+
+@pytest.mark.parametrize("field, value, column, expected", [
+    # verdict
+    pytest.param("verdict", "supported", "verdict", "Supported",
+                 id="verdict casing"),
+    pytest.param("verdict", "nonsense", "verdict", "Unclear / Not enough evidence",
+                 id="invalid verdict"),
+    pytest.param("verdict", None, "verdict", "Unclear / Not enough evidence",
+                 id="none verdict"),
+
+    # technique (comes from misinformation_type)
+    pytest.param("misinformation_type", "deepfake", "technique", "Deepfake",
+                 id="technique casing"),
+    pytest.param("misinformation_type", "Not A Real Technique", "technique", "None",
+                 id="invalid technique"),
+    pytest.param("misinformation_type", None, "technique", "None",
+                 id="none technique"),
+
+    # text columns
+    pytest.param("claim", "  padded claim  ", "claim", "padded claim",
+                 id="claim stripped"),
+    pytest.param("reasoning", "  padded reason  ", "source_reasoning", "padded reason",
+                 id="reasoning renamed and stripped"),
+    pytest.param("summary", None, "summary", "",
+                 id="none summary"),
+
+    # entities
+    pytest.param("entities", ["UK", "uk", "ONS"], "entities", ("UK", "ONS"),
+                 id="entities deduped"),
+    pytest.param("entities", "not a list", "entities", (),
+                 id="entities not a list"),
+
+    # tags
+    pytest.param("tags", ["Media Journalism", "Europe"], "tags",
+                 ("Europe", "Media Journalism"), id="tags sorted"),
+    pytest.param("tags", ["Nonsense"], "tags", (),
+                 id="invalid tags"),
+    pytest.param("tags", None, "tags", (),
+                 id="none tags"),
+
+    # sources
+    pytest.param("sources", ["https://a.com", "https://b.com"], "sources",
+                 "https://a.com", id="first source kept"),
+    pytest.param("sources", [], "sources", None,
+                 id="no sources"),
+    pytest.param("sources", None, "sources", None,
+                 id="none sources"),
+
+    # source_name
+    pytest.param("source_name", "  BBC Verify  ", "source_name", "BBC Verify",
+                 id="outlet stripped"),
+    pytest.param("source_name", "full fact", "source_name", "Full Fact",
+                 id="outlet casing"),
+    pytest.param("source_name", "Google", "source_name", None,
+                 id="invalid outlet"),
+
+    # claim_url
+    pytest.param("claim_url", "https://example.com", "claim_url",
+                 "https://example.com", id="valid claim url"),
+    pytest.param("claim_url", "   ", "claim_url", None,
+                 id="blank claim url"),
+    pytest.param("claim_url", 123, "claim_url", None,
+                 id="number as claim url"),
+
+    # claim_embedding
+    pytest.param("claim_embedding", [0.1, 0.2], "claim_embedding", [0.1, 0.2],
+                 id="valid embedding"),
+    pytest.param("claim_embedding", "not a list", "claim_embedding", None,
+                 id="invalid embedding"),
+
+    # numbers
+    pytest.param("confidence_score", 0.5, "confidence_score", 0.5,
+                 id="valid confidence score"),
+    pytest.param("confidence_score", "high", "confidence_score", None,
+                 id="invalid confidence score"),
+    pytest.param("similarity", 0.9, "similarity", 0.9,
+                 id="valid similarity"),
+    pytest.param("similarity", "high", "similarity", None,
+                 id="invalid similarity"),
+])
+def test_transform_cleans_column(field, value, column, expected):
+    """Each column of a record is cleaned the way its rules say."""
+    df = transform([make_record(**{field: value})])
+
+    assert df.iloc[0][column] == expected
+
+
+# Whole records
 
 def test_transform_produces_clean_dataframe_for_normal_branch():
     """transform() cleans every column of a normal (non-skip_etl) verdict record."""
@@ -260,25 +385,6 @@ def test_transform_produces_clean_dataframe_for_normal_branch():
     assert row["confidence_score"] == 0.8
     assert row["claim_url"] is None
     assert row["claim_embedding"] is None
-
-
-def test_transform_handles_invalid_technique():
-    """An unrecognised technique becomes 'unknown'."""
-    records = [
-        {
-            "claim": "Example.",
-            "verdict": "Supported",
-            "reasoning": "Example.",
-            "misinformation_type": "Not A Real Technique",
-            "entities": [],
-            "tags": [],
-            "sources": [],
-        }
-    ]
-
-    df = transform(records)
-
-    assert df.iloc[0]["technique"] == "None"
 
 
 def test_transform_produces_clean_dataframe_for_skip_etl_branch():
@@ -359,4 +465,5 @@ def test_transform_adds_claim_url_embedding_confidence_columns_when_missing():
 def test_transform_handles_empty_list():
     """transform() returns an empty DataFrame for an empty input list."""
     df = transform([])
+
     assert len(df) == 0
