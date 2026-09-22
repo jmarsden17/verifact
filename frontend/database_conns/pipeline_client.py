@@ -78,11 +78,10 @@ def run_pipeline(claim_input: str, url_input: str = "") -> dict:
     payload = _build_input(claim_input, url_input)
 
     state_machine_arn = os.getenv("STATE_MACHINE_ARN")
-    lambda_name = os.getenv("PIPELINE_LAMBDA_NAME")
 
     if state_machine_arn:
         return _invoke_step_function(state_machine_arn, payload)
 
     raise PipelineError(
-        "STATE_MACHINE_ARN is set - add STATE_MACHINE_ARN to .env"
+        "STATE_MACHINE_ARN is not set - add STATE_MACHINE_ARN to .env"
     )
