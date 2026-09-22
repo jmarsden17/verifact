@@ -55,6 +55,7 @@ if __name__ == "__main__":
     load_dotenv()
     logging.basicConfig(level=logging.INFO)
 
+    # TODO: Change this when linked to the front-end
     web = 'https://www.bbc.co.uk/news/articles/c6y0z4gv0le4o'
 
     extract_url(web)
