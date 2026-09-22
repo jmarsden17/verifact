@@ -4,6 +4,8 @@ import json
 import os
 import time
 import boto3
+from database_conns.link_verifier import verify_url
+from database_conns.url_extract import extract_url
 
 AWS_REGION = os.getenv("AWS_DEFAULT_REGION", "eu-west-2")
 
@@ -35,13 +37,28 @@ def _client(service: str):
 
 
 def _build_input(claim_input: str, url_input: str) -> dict:
-    """Payload sent to the pipeline: {"user_text": "..."}."""
+    """Payload sent to the pipeline: {"user_text": "..."}, checks for links and text in both input boxes."""
 
-    text = claim_input.strip()
-    if url_input:
-        text = f"{text}\n\nSource URL: {url_input.strip()}"
+    if url_input and not claim_input.strip():
+        # URL and no text.
+        if verify_url(url_input):
+            return {"user_text": extract_url(url_input)}
+        return {"user_text": url_input.strip()}
 
-    return {"user_text": text}
+    if claim_input.strip() and not url_input:
+        # Text and no URL.
+        if verify_url(claim_input.strip()):
+            return {"user_text": extract_url(claim_input.strip())}
+        text = claim_input.strip()
+        return {"user_text": text}
+
+    if claim_input.strip() and url_input:
+        # Text and URL.
+        text = f"{claim_input.strip()}\n\nSource URL: {url_input.strip()}"
+        return {"user_text": text}
+
+    if not claim_input.strip() and not url_input:
+        return {}
 
 
 def _invoke_step_function(state_machine_arn: str, payload: dict) -> dict:
