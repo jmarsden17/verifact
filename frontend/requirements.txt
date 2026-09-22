@@ -7,5 +7,6 @@ pathlib
 python-dotenv
 psycopg2-binary
 boto3
+numpy
 trafilatura
 firecrawl-py

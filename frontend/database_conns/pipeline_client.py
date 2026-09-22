@@ -7,9 +7,7 @@ import boto3
 
 AWS_REGION = os.getenv("AWS_DEFAULT_REGION", "eu-west-2")
 
-# How long the frontend will wait for a STANDARD (async) Step Function run
-# before giving up. Streamlit itself has no hard request timeout, but a
-# journalist waiting on a spinner does - keep this well under a minute.
+# How long the frontend will wait for a STANDARD (async) Step Function run.
 POLL_INTERVAL_SECONDS = 2
 MAX_WAIT_SECONDS = 50
 

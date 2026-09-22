@@ -91,9 +91,6 @@ def verify_claim(claim_input: str, url_input: str = "") -> list:
         raw_output = pipeline_client.run_pipeline(claim_input, url_input)
         return _normalise_pipeline_output(raw_output)
     except Exception as e:
-        # Catches pipeline_client.PipelineError as well as raw boto3/AWS
-        # errors (bad credentials, throttling, network issues) - any of
-        # these should fall back to mock data rather than crash the page.
         print(
             f"\u26a0\ufe0f Pipeline call failed, showing mock data instead: {e}")
         return _mock_verification_payload(claim_input)

@@ -1,86 +1,170 @@
-"""Outlet Analytics page: headline metrics and charts from RDS."""
+"""Outlet Analytics page: Publisher reliability, coordination matrix, and network intelligence."""
+
 
 import pandas as pd
 import streamlit as st
+
 from database_conns import fetch_data as fn
-from ..charts.outlet import build_outlet_chart
-from ..charts.timeline import RESURFACED_AFTER_DAYS, build_recurrence_chart
-from ..components.chart_display import show_chart
 from ..components.header import render_page_header
 from ..components.section import render_section_heading
+from ..components.chart_display import show_chart
+
+from ..charts.outlet import (
+    _explode_publishers,
+    build_falsehood_density_matrix,
+    build_syndication_network,
+    build_jaccard_similarity_heatmap,
+)
+
+# Data processing
 
 
-def _most_common(df: pd.DataFrame, column: str) -> str:
-    """Most frequent value in a column, or "N/A" when there is nothing to count."""
-
-    if column in df and not df[column].dropna().empty:
-        return df[column].mode()[0]
-    return "N/A"
-
-
-def _headline_metrics(df: pd.DataFrame) -> dict:
-    """Numbers for the metric cards at the top of the page."""
-
-    days_to_resurface = (df["access_datetime"] -
-                         df["publish_datetime"]).dt.days
-    return {
-        "total_claims": len(df),
-        "resurfaced": int((days_to_resurface > RESURFACED_AFTER_DAYS).sum()),
-        # NOTE: "publisher" holds combined strings like "BBC Verify, Reuters",
-        # so this is the most common *combination*, not the top single outlet.
-        "top_publisher": _most_common(df, "publisher"),
-        "top_technique": _most_common(df, "technique"),
-    }
+def _filter_by_outlets(df: pd.DataFrame, selected_outlets: list) -> pd.DataFrame:
+    """Isolate specific outlets if any are selected."""
+    if not selected_outlets:
+        return df
+    return df[df["publisher"].isin(selected_outlets)]
 
 
-def _render_metric_row(metrics: dict):
-    """Render the row of headline metric cards."""
+def _filter_by_volume(df: pd.DataFrame, min_volume: int) -> pd.DataFrame:
+    """Filter out outlets below the minimum claim volume threshold."""
+    counts = df["publisher"].value_counts()
+    valid_outlets = counts[counts >= min_volume].index
+    return df[df["publisher"].isin(valid_outlets)]
 
-    m1, m2, m3, m4 = st.columns(4)
-    m1.metric(label="Total Claims Checked",
-              value=f"{metrics['total_claims']:,}")
-    m2.metric(label="Primary Outlet Source", value=metrics["top_publisher"])
-    m3.metric(label="Top Technique Used", value=metrics["top_technique"])
-    m4.metric(label="Resurfaced Myths (>7d)",
-              value=f"{metrics['resurfaced']:,}")
 
+# UI
+
+def _render_publisher_filters(exploded_df: pd.DataFrame) -> tuple:
+    """Render publisher dropdowns and volume thresholds."""
+    col_out, col_thresh = st.columns([3, 1])
+
+    with col_out:
+        all_outlets = sorted(exploded_df["publisher"].unique().tolist())
+        selected_outlets = st.multiselect(
+            "Focus on Specific Outlets", options=all_outlets, default=[])
+
+    with col_thresh:
+        min_volume = st.number_input("Min. Claim Volume", min_value=1, value=1)
+
+    return selected_outlets, min_volume
+
+
+def _render_explained_filter_bar(exploded_df: pd.DataFrame) -> pd.DataFrame:
+    """Render collapsible publisher filter panel and return filtered dataset."""
+    with st.expander("🔍 Publisher Search & Filters (Click to expand guidance)", expanded=True):
+        selected_outlets, min_volume = _render_publisher_filters(exploded_df)
+
+    filtered = _filter_by_outlets(exploded_df, selected_outlets)
+    filtered = _filter_by_volume(filtered, min_volume)
+    return filtered
+
+
+# Rendering sections
+
+def _render_network_risk_section(filtered_exploded: pd.DataFrame, raw_df: pd.DataFrame):
+    """Render reliability scatter matrix and co-publishing network bar chart."""
+    col_rel, col_net = st.columns(2)
+
+    with col_rel:
+        render_section_heading("Outlet Reliability Map",
+                               "Volume vs. proportion of disproven stories.")
+        show_chart(build_falsehood_density_matrix(filtered_exploded))
+        with st.expander("💡 Reporter's Field Notes: How to use these findings"):
+            st.markdown("""
+            * **Top-Right Outlets:** High-risk hubs with high volumes and high falsehood rates.
+            * **Bottom-Right Outlets:** Highly reliable news sources with strong editorial checks.
+            """)
+
+    with col_net:
+        render_section_heading("Top Co-Publishing Networks",
+                               "Outlets co-publishing identical claims.")
+        show_chart(build_syndication_network(raw_df))
+        with st.expander("💡 Reporter's Field Notes: How to use these findings"):
+            st.markdown(
+                "* **Investigative Lead:** Repeated pairings signal shared syndication agreements or automated scraping.")
+
+
+def _render_coordination_matrix_section(raw_df: pd.DataFrame):
+    """Render Jaccard media overlap heatmap."""
+    render_section_heading("Media Coordination & Overlap Matrix",
+                           "Clusters indicate synchronized publishing across outlets.")
+    show_chart(build_jaccard_similarity_heatmap(raw_df))
+    with st.expander("💡 Reporter's Field Notes: How to use these findings"):
+        st.markdown(
+            "* **Dark Clusters:** Indicates synchronized publishing networks covering near-identical claim portfolios.")
+
+
+def _build_scorecard_dataframe(filtered_exploded: pd.DataFrame) -> pd.DataFrame:
+    """Aggregate statistics to form the publisher scorecard table."""
+    scorecard = filtered_exploded.groupby("publisher").agg(
+        total_claims=("claim_id", "nunique"),
+        contradicted=("verdict", lambda x: (x == "Contradicted").sum()),
+        missing_context=("verdict", lambda x: (x == "Missing Context").sum()),
+        supported=("verdict", lambda x: (x == "Supported").sum()),
+        primary_tactic=("technique", lambda x: x.mode()
+                        [0] if not x.empty else "None")
+    ).reset_index()
+
+    scorecard["unreliability_index"] = (
+        ((scorecard["contradicted"] + scorecard["missing_context"]
+          ) / scorecard["total_claims"]) * 100
+    ).round(1)
+
+    return scorecard.sort_values(by="total_claims", ascending=False)
+
+
+def _render_scorecard_section(filtered_exploded: pd.DataFrame):
+    """Render summary table and table field notes."""
+    render_section_heading("Publisher Reliability Scorecard",
+                           "Monitored media outlets ranked by volume and flagged ratio.")
+
+    scorecard_df = _build_scorecard_dataframe(filtered_exploded)
+
+    st.dataframe(
+        scorecard_df.rename(columns={
+            "publisher": "Outlet / Publisher",
+            "total_claims": "Total Claims Handled",
+            "contradicted": "Disproven",
+            "missing_context": "Missing Context",
+            "supported": "Verified True",
+            "unreliability_index": "Flagged Rate (%)",
+            "primary_tactic": "Main Deception Tactic"
+        }),
+        use_container_width=True,
+        hide_index=True
+    )
+    with st.expander("💡 Reporter's Field Notes: How to use this table"):
+        st.markdown("""
+        * **Background Check:** Sort by Flagged Rate (%) to evaluate unfamiliar sources.
+        * **Tactic Column:** Reveals bias styles (e.g., *Missing Context* signals misleading framing).
+        """)
+
+
+# Main page
 
 def render():
-    """Live metric cards & relational data analytics powered by RDS."""
-
+    """Main view rendering logic."""
     render_page_header(
-        "Outlet Source Analytics",
-        "Live distribution metrics across ingested fact-checking partners and techniques."
+        "Outlet & Source Network Intelligence",
+        "Audit media reliability, expose coordinated republishing networks, and pinpoint high-risk news sources."
     )
 
-    df = fn.fetch_analytics_data()
-
-    if df.empty:
+    raw_df = fn.fetch_analytics_data()
+    if raw_df.empty:
         st.warning(
-            "⚠️ Unable to load live database records. Please verify your RDS connection settings in your environment.")
+            "⚠️ Unable to load live database records. Please check your system connection.")
         return
 
-    df["publish_datetime"] = pd.to_datetime(df["publish_datetime"])
-    df["access_datetime"] = pd.to_datetime(df["access_datetime"])
+    exploded_df = _explode_publishers(raw_df)
 
-    _render_metric_row(_headline_metrics(df))
-
-    st.markdown("---")
-
-    col_publisher, col_recurrence = st.columns(2)
-
-    with col_publisher:
-        render_section_heading(
-            "Verifications by Fact-Checking Publisher",
-            "Live volume of claims indexed across verified primary partners.",
-        )
-        show_chart(build_outlet_chart(df))
-
-    with col_recurrence:
-        render_section_heading(
-            "Claim Ingestion & Recurrence Rate",
-            "Comparing new claims against queries resurfacing long after publication.",
-        )
-        show_chart(build_recurrence_chart(df))
+    filtered_exploded = _render_explained_filter_bar(exploded_df)
 
     st.markdown("---")
+    _render_network_risk_section(filtered_exploded, raw_df)
+
+    st.markdown("---")
+    _render_coordination_matrix_section(raw_df)
+
+    st.markdown("---")
+    _render_scorecard_section(filtered_exploded)
