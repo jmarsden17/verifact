@@ -35,13 +35,13 @@ def _render_reasoning_and_confidence(item: dict, rating: str, idx: int):
         st.write(item.get("reasoning", "No explanation provided."))
 
     with col_gauge:
-        confidence = (
-            PLACEHOLDER_CONFIDENCE_HIGH
-            if rating in CONFIDENT_RATINGS
-            else PLACEHOLDER_CONFIDENCE_LOW
-        )
-        show_chart(build_confidence_gauge(
-            confidence), key=f"gauge_chart_{idx}")
+        confidence = item.get("confidence")
+        if confidence is None:
+            confidence = (PLACEHOLDER_CONFIDENCE_HIGH
+                          if rating in CONFIDENT_RATINGS
+                          else PLACEHOLDER_CONFIDENCE_LOW)
+        show_chart(build_confidence_gauge(confidence),
+                   key=f"gauge_chart_{idx}")
 
 
 def render_claim_reports(results: list):

@@ -1,5 +1,6 @@
 """Data logic and backend handlers."""
 
+import os
 import sys
 from pathlib import Path
 import pandas as pd
@@ -7,6 +8,7 @@ from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
 from requests import get
 
+from . import pipeline_client
 from .connection import get_db_connection
 
 # Force loading .env file explicitly from the frontend folder
@@ -79,10 +81,91 @@ def fetch_analytics_data() -> pd.DataFrame:
         ])
 
 
-def verify_claim(claim_input: str, url_input: str = "") -> dict:
-    """Pass user input to pipeline handlers and return formatted results for UI."""
+def verify_claim(claim_input: str, url_input: str = "") -> list:
+    """Send a claim through the real pipeline; fall back to mock data if it fails. """
 
-    return _mock_verification_payload(claim_input)
+    if not os.getenv("STATE_MACHINE_ARN"):
+        return _mock_verification_payload(claim_input)
+
+    try:
+        raw_output = pipeline_client.run_pipeline(claim_input, url_input)
+        return _normalise_pipeline_output(raw_output)
+    except Exception as e:
+        # Catches pipeline_client.PipelineError as well as raw boto3/AWS
+        # errors (bad credentials, throttling, network issues) - any of
+        # these should fall back to mock data rather than crash the page.
+        print(
+            f"\u26a0\ufe0f Pipeline call failed, showing mock data instead: {e}")
+        return _mock_verification_payload(claim_input)
+
+
+VERDICT_ALIASES = {
+    "supported": "Supported",
+    "contradicted": "Contradicted",
+    "missing context": "Missing Context",
+    "unclear": "Unclear",
+}
+
+
+def _canonical_verdict(raw_verdict: str) -> str:
+    """Map a pipeline verdict string (e.g. "Unclear / Not enough evidence")
+    onto the exact labels the UI's colours and copy are keyed on."""
+
+    lowered = (raw_verdict or "").lower()
+    for needle, canonical in VERDICT_ALIASES.items():
+        if needle in lowered:
+            return canonical
+    return "Unclear"
+
+
+def _source_url(row: dict) -> str | None:
+    """The "sources" field is a URL string when a real article was found,
+    or NaN (a float) when it wasn't - never a real URL in the latter case."""
+
+    value = row.get("sources")
+    return value if isinstance(value, str) and value else None
+
+
+def _group_by_claim(rows: list) -> dict:
+    """{claim_id_or_text: [row, row, ...]}, preserving first-seen order."""
+
+    grouped = {}
+    for row in rows:
+        claim_id = row.get("claim_id")
+        key = claim_id if claim_id is not None else row.get("claim", "")
+        grouped.setdefault(key, []).append(row)
+    return grouped
+
+
+def _normalise_pipeline_output(raw) -> list:
+    """Reshape the pipeline's flat claim/source rows into what the UI expects"""
+
+    rows = raw if isinstance(raw, list) else [raw]
+    results = []
+
+    for claim_rows in _group_by_claim(rows).values():
+        first = claim_rows[0]
+        entry = {
+            "claim": first.get("claim", ""),
+            "rating": _canonical_verdict(first.get("verdict")),
+            "reasoning": first.get("summary") or first.get("source_reasoning", ""),
+            "sources": [
+                {
+                    "name": row.get("source_name") or "Source",
+                    "snippet": row.get("source_reasoning", ""),
+                    "url": _source_url(row),
+                }
+                for row in claim_rows
+            ],
+        }
+
+        confidence_score = first.get("confidence_score")
+        if isinstance(confidence_score, (int, float)):
+            entry["confidence"] = confidence_score * 100
+
+        results.append(entry)
+
+    return results
 
 
 def _mock_verification_payload(claim_input: str) -> list:
@@ -161,3 +244,52 @@ def get_filtered_logs(search_query: str = "", verdict_filter: str = "All") -> pd
     except Exception as e:
         print(f"⚠️ Live RDS Query Exception: {e}")
         raise e
+
+
+def get_top_disproven_claims() -> pd.DataFrame:
+    """Fetch recent live claims from RDS filtered for Contradicted or Missing Context verdicts."""
+    query = """
+        SELECT 
+            c.claim_id,
+            c.claim AS claim_text,
+            COALESCE(v.verdict, 'Contradicted') AS verdict,
+            STRING_AGG(DISTINCT o.outlet, ', ') AS publishers,
+            c.access_datetime AS timestamp
+        FROM claim c
+        JOIN verdict v ON c.verdict_id = v.verdict_id
+        LEFT JOIN claim_source cs ON c.claim_id = cs.claim_id
+        LEFT JOIN source s ON cs.source_id = s.source_id
+        LEFT JOIN outlet o ON s.outlet_id = o.outlet_id
+        WHERE LOWER(v.verdict) IN ('contradicted', 'missing context')
+        GROUP BY c.claim_id, c.claim, v.verdict, c.access_datetime
+        ORDER BY c.access_datetime DESC
+        LIMIT 10
+    """
+    try:
+        conn = get_db_connection()
+        df = pd.read_sql(query, conn)
+        conn.close()
+        return df
+    except Exception as e:
+        print(f"⚠️ RDS Fetch Error: {e}")
+        # Mock fallback for UI preview
+        return pd.DataFrame([
+            {
+                "claim_text": "Claim regarding central bank emergency interest rate cuts",
+                "verdict": "Contradicted",
+                "publishers": "BBC Verify",
+                "timestamp": "10m ago"
+            },
+            {
+                "claim_text": "Drinking warm lemon water daily completely cures type 2 diabetes.",
+                "verdict": "Contradicted",
+                "publishers": "Full Fact, Reuters",
+                "timestamp": "35m ago"
+            },
+            {
+                "claim_text": "Statistics on regional hospital waiting times in shared image",
+                "verdict": "Missing Context",
+                "publishers": "Full Fact",
+                "timestamp": "45m ago"
+            }
+        ])
