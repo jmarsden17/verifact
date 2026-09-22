@@ -25,6 +25,8 @@ def handler(event=None, context=None) -> dict:
 
     new_event = json.loads(content_string)
 
+    logging.info('Successfully loaded values from S3 Bucket')
+
     results = new_event.get("results", [])
     skipped = new_event.get("skipped", [])
 

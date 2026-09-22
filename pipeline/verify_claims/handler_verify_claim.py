@@ -24,6 +24,8 @@ def handler(event=None, context=None):
 
     new_event = json.loads(content_string)
 
+    logging.info('Successfully loaded values from S3 Bucket')
+
     claims_data = new_event["body"]
     source_url = new_event.get("source_url", "")
     source_name = new_event.get("source_name", "")
@@ -96,6 +98,8 @@ def handler(event=None, context=None):
         Body=return_values,
         ContentType='application/json'
     )
+
+    logging.info('Successfully loaded values into S3 Bucket')
 
     return {
         "statusCode": 200,

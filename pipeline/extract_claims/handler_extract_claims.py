@@ -65,6 +65,8 @@ def handler(event=None, context=None):
         ContentType='application/json'
     )
 
+    logging.info('Successfully loaded values into S3 Bucket')
+
     return {
         "statusCode": 200,
         "s3_reference": {
