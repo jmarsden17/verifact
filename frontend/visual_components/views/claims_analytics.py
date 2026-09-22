@@ -1,12 +1,13 @@
-"""Claims Analytics page: Velocity, intelligence quadrants, and advanced statistical models."""
+"""Claims Analytics page: Refactored modular layout for narrative intelligence."""
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 import streamlit as st
+
 from database_conns import fetch_data as fn
 from ..components.header import render_page_header
-from ..components.chart_display import show_chart
 from ..components.section import render_section_heading
+from ..components.chart_display import show_chart
 
 from ..charts.claims import (
     build_quadrant_chart,
@@ -14,10 +15,12 @@ from ..charts.claims import (
     build_technique_latency_boxplot,
     build_narrative_decay_curve,
     build_tfidf_keyword_chart,
+    build_quick_verdict_donut,
+    build_quick_top_tactics_bar,
 )
 
 
-# Data processing
+# --- DATA PREPROCESSING HELPERS ---
 
 def _preprocess_claims_data(df: pd.DataFrame) -> pd.DataFrame:
     """Add calculated intelligence fields: days latent, outlet counts, and spread velocity."""
@@ -68,7 +71,7 @@ def _apply_metadata_filters(df: pd.DataFrame, verdicts: list, techniques: list, 
     return filtered
 
 
-# UI
+# --- UI COMPONENT FUNCTIONS ---
 
 def _render_filter_controls(df: pd.DataFrame) -> tuple:
     """Render filter UI inputs and return raw filter selections."""
@@ -146,7 +149,20 @@ def _render_kpi_card_row(df: pd.DataFrame):
     c4.metric("Spread Rate", f"{avg_velocity:.1f} outlets/day")
 
 
-# Sections
+def _render_quick_summary_row(df: pd.DataFrame):
+    """Quick, on-the-go visual summaries for journalists."""
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.caption("⚡ QUICK BREAKDOWN: VERDICT DISTRIBUTION")
+        show_chart(build_quick_verdict_donut(df))
+
+    with col2:
+        st.caption("⚡ QUICK BREAKDOWN: TOP 5 DECEPTION TACTICS")
+        show_chart(build_quick_top_tactics_bar(df))
+
+
+# --- SECTION RENDERING HELPERS ---
 
 def _render_velocity_section(df: pd.DataFrame):
     """Render quadrant chart and tactic breakdown."""
@@ -204,7 +220,7 @@ def _render_keywords_section(df: pd.DataFrame):
             "* **Editor Tip:** Use top-ranked phrases in social monitoring tools (e.g. TweetDeck) to flag unverified claims early.")
 
 
-# Main page
+# --- MAIN ENTRYPOINT ---
 
 def render():
     """Main view rendering logic."""
@@ -225,6 +241,9 @@ def render():
 
     st.markdown("---")
     _render_kpi_card_row(filtered_df)
+
+    st.markdown("---")
+    _render_quick_summary_row(filtered_df)
 
     st.markdown("---")
     _render_velocity_section(filtered_df)

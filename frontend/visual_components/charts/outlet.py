@@ -1,10 +1,10 @@
-"""Visual components for outlet-related charts."""
+"""Plotly chart builders for outlet analytics, falsehood density, syndication networks, and matrix similarity."""
 
-from ._base import TOP_RIGHT_LEGEND, apply_base_layout
-from .. import theme
-import plotly.express as px
 import numpy as np
 import pandas as pd
+import plotly.express as px
+from .. import theme
+from ._base import TOP_RIGHT_LEGEND, apply_base_layout
 
 
 def _explode_publishers(df: pd.DataFrame) -> pd.DataFrame:
@@ -44,6 +44,67 @@ def build_outlet_chart(df: pd.DataFrame):
     )
 
 
+def build_quick_top_outlets_bar(exploded_df: pd.DataFrame):
+    """Quick summary bar chart of top 5 outlets by claim volume."""
+    if exploded_df.empty or "publisher" not in exploded_df.columns:
+        return None
+
+    top_outlets = exploded_df["publisher"].value_counts().head(5).reset_index()
+    top_outlets.columns = ["Outlet", "Volume"]
+
+    fig = px.bar(
+        top_outlets,
+        x="Volume",
+        y="Outlet",
+        orientation="h",
+        color_discrete_sequence=[theme.COLOUR_PRIMARY_DARK]
+    )
+
+    return apply_base_layout(
+        fig,
+        height=240,
+        margin=dict(l=10, r=10, t=10, b=10),
+        xaxis_title=None,
+        yaxis_title=None,
+        showlegend=False,
+        yaxis={'categoryorder': 'total ascending'},
+    )
+
+
+def build_quick_outlet_verdict_breakdown(exploded_df: pd.DataFrame):
+    """Quick summary stacked horizontal bar of verdict proportions for top 5 outlets."""
+    if exploded_df.empty or "publisher" not in exploded_df.columns:
+        return None
+
+    top_outlets_list = exploded_df["publisher"].value_counts().head(
+        5).index.tolist()
+    filtered = exploded_df[exploded_df["publisher"].isin(top_outlets_list)]
+
+    grouped = filtered.groupby(
+        ["publisher", "verdict"]).size().reset_index(name="Count")
+
+    fig = px.bar(
+        grouped,
+        x="Count",
+        y="publisher",
+        color="verdict",
+        orientation="h",
+        color_discrete_map=theme.VERDICT_CHART_COLOURS,
+        category_orders={"verdict": theme.VERDICT_ORDER}
+    )
+
+    return apply_base_layout(
+        fig,
+        height=240,
+        margin=dict(l=10, r=10, t=10, b=10),
+        xaxis_title=None,
+        yaxis_title=None,
+        barmode="stack",
+        showlegend=False,
+        yaxis={'categoryorder': 'total ascending'},
+    )
+
+
 def build_falsehood_density_matrix(exploded_df: pd.DataFrame):
     """Scatter chart mapping total claim volume vs falsehood rate per outlet."""
     if exploded_df.empty or "publisher" not in exploded_df.columns:
@@ -74,13 +135,15 @@ def build_falsehood_density_matrix(exploded_df: pd.DataFrame):
     )
 
     fig.update_traces(textposition="top center")
-    fig.update_layout(
+
+    return apply_base_layout(
+        fig,
+        height=420,
+        margin=dict(l=20, r=20, t=30, b=20),
         xaxis_title="Total Claims Associated with Outlet",
         yaxis_title="Unreliable Claims Rate (%)",
-        height=420,
         showlegend=False
     )
-    return fig
 
 
 def build_syndication_network(df: pd.DataFrame):
@@ -88,7 +151,6 @@ def build_syndication_network(df: pd.DataFrame):
     if df.empty or "publisher" not in df.columns:
         return None
 
-    # Filter claims associated with multi-outlet strings
     multi = df[df["publisher"].fillna("").str.contains(",")]
     if multi.empty:
         return None
@@ -120,26 +182,21 @@ def build_syndication_network(df: pd.DataFrame):
         title="Top 10 Outlet Co-Publishing Networks"
     )
 
-    fig.update_layout(
+    return apply_base_layout(
+        fig,
+        height=420,
+        margin=dict(l=20, r=20, t=30, b=20),
         xaxis_title="Shared Disproven/Verified Claims",
-        yaxis_title="Outlet Pair",
-        height=420
+        yaxis_title="Outlet Pair"
     )
-    return fig
 
 
 def build_jaccard_similarity_heatmap(df: pd.DataFrame):
-    """
-    Calculates Jaccard Similarity Index J(A,B) = |A ∩ B| / |A ∪ B|
-    between pairs of outlets based on the exact claims they cover.
-    A score close to 1.0 indicates synchronized publication behavior.
-    """
+    """Calculates Jaccard Similarity Index to show synchronized publishing networks."""
     if df.empty or "publisher" not in df.columns:
         return None
 
     exploded = _explode_publishers(df)
-
-    # Filter top publishers for matrix readability
     top_publishers = exploded["publisher"].value_counts().head(
         12).index.tolist()
     filtered = exploded[exploded["publisher"].isin(top_publishers)]
@@ -147,7 +204,6 @@ def build_jaccard_similarity_heatmap(df: pd.DataFrame):
     if filtered.empty:
         return None
 
-    # Pivot into binary presence matrix (Claims x Outlets)
     basket = (filtered.groupby(["claim_id", "publisher"])["claim"]
               .count().unstack().fillna(0)
               .map(lambda x: 1 if x > 0 else 0))
@@ -175,9 +231,13 @@ def build_jaccard_similarity_heatmap(df: pd.DataFrame):
 
     fig = px.imshow(
         sim_df,
-        labels=dict(x="Outlet A", y="Outlet B", color="Jaccard Index"),
+        labels=dict(x="Outlet A", y="Outlet B", color="Similarity Score"),
         color_continuous_scale="Purples",
-        title="Cross-Outlet Co-occurrence Matrix (Jaccard Similarity Index)"
+        title="Cross-Outlet Co-occurrence Matrix (Publication Similarity)"
     )
-    fig.update_layout(height=420)
-    return fig
+
+    return apply_base_layout(
+        fig,
+        height=420,
+        margin=dict(l=20, r=20, t=30, b=20)
+    )

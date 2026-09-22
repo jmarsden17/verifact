@@ -1,5 +1,4 @@
-"""Outlet Analytics page: Publisher reliability, coordination matrix, and network intelligence."""
-
+"""Outlet Analytics page: Refactored modular layout for publisher reliability."""
 
 import pandas as pd
 import streamlit as st
@@ -14,10 +13,12 @@ from ..charts.outlet import (
     build_falsehood_density_matrix,
     build_syndication_network,
     build_jaccard_similarity_heatmap,
+    build_quick_top_outlets_bar,
+    build_quick_outlet_verdict_breakdown,
 )
 
-# Data processing
 
+# --- DATA PREPROCESSING HELPERS ---
 
 def _filter_by_outlets(df: pd.DataFrame, selected_outlets: list) -> pd.DataFrame:
     """Isolate specific outlets if any are selected."""
@@ -33,7 +34,7 @@ def _filter_by_volume(df: pd.DataFrame, min_volume: int) -> pd.DataFrame:
     return df[df["publisher"].isin(valid_outlets)]
 
 
-# UI
+# --- UI COMPONENT FUNCTIONS ---
 
 def _render_publisher_filters(exploded_df: pd.DataFrame) -> tuple:
     """Render publisher dropdowns and volume thresholds."""
@@ -60,7 +61,20 @@ def _render_explained_filter_bar(exploded_df: pd.DataFrame) -> pd.DataFrame:
     return filtered
 
 
-# Rendering sections
+def _render_quick_summary_row(exploded_df: pd.DataFrame):
+    """Quick, on-the-go visual summaries for journalists."""
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.caption("⚡ QUICK BREAKDOWN: TOP 5 OUTLETS BY VOLUME")
+        show_chart(build_quick_top_outlets_bar(exploded_df))
+
+    with col2:
+        st.caption("⚡ QUICK BREAKDOWN: TOP OUTLETS VERDICT PROFILE")
+        show_chart(build_quick_outlet_verdict_breakdown(exploded_df))
+
+
+# --- SECTION RENDERING HELPERS ---
 
 def _render_network_risk_section(filtered_exploded: pd.DataFrame, raw_df: pd.DataFrame):
     """Render reliability scatter matrix and co-publishing network bar chart."""
@@ -141,7 +155,7 @@ def _render_scorecard_section(filtered_exploded: pd.DataFrame):
         """)
 
 
-# Main page
+# --- MAIN ENTRYPOINT ---
 
 def render():
     """Main view rendering logic."""
@@ -159,6 +173,9 @@ def render():
     exploded_df = _explode_publishers(raw_df)
 
     filtered_exploded = _render_explained_filter_bar(exploded_df)
+
+    st.markdown("---")
+    _render_quick_summary_row(filtered_exploded)
 
     st.markdown("---")
     _render_network_risk_section(filtered_exploded, raw_df)

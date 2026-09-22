@@ -1,11 +1,72 @@
-"""Visual components for claim-related charts."""
+"""Plotly chart builders for claims analytics, latency, techniques, and NLP features."""
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from .. import theme
 from sklearn.feature_extraction.text import TfidfVectorizer
+from .. import theme
+from ._base import apply_base_layout
+
+
+def build_quick_verdict_donut(df: pd.DataFrame):
+    """Quick summary donut chart showing overall verdict distribution using brand colours."""
+    if df.empty or "verdict" not in df.columns:
+        return None
+
+    counts = df["verdict"].value_counts().reset_index()
+    counts.columns = ["Verdict", "Count"]
+
+    fig = px.pie(
+        counts,
+        values="Count",
+        names="Verdict",
+        hole=0.6,
+        color="Verdict",
+        color_discrete_map=theme.VERDICT_CHART_COLOURS,
+        category_orders={"Verdict": theme.VERDICT_ORDER}
+    )
+
+    fig.update_traces(
+        textposition="inside",
+        textinfo="percent+label",
+        hoverinfo="label+value+percent",
+        marker=dict(line=dict(color="#FFFFFF", width=2))
+    )
+
+    return apply_base_layout(
+        fig,
+        height=240,
+        margin=dict(l=10, r=10, t=10, b=10),
+        showlegend=False,
+    )
+
+
+def build_quick_top_tactics_bar(df: pd.DataFrame):
+    """Quick summary horizontal bar chart of top 5 tactics."""
+    if df.empty or "technique" not in df.columns:
+        return None
+
+    top_tactics = df["technique"].value_counts().head(5).reset_index()
+    top_tactics.columns = ["Technique", "Count"]
+
+    fig = px.bar(
+        top_tactics,
+        x="Count",
+        y="Technique",
+        orientation="h",
+        color_discrete_sequence=[theme.COLOUR_PRIMARY]
+    )
+
+    return apply_base_layout(
+        fig,
+        height=240,
+        margin=dict(l=10, r=10, t=10, b=10),
+        xaxis_title=None,
+        yaxis_title=None,
+        showlegend=False,
+        yaxis={'categoryorder': 'total ascending'},
+    )
 
 
 def build_quadrant_chart(df: pd.DataFrame):
@@ -26,7 +87,6 @@ def build_quadrant_chart(df: pd.DataFrame):
         title="Claim Risk Matrix: Latency vs. Outlet Amplification"
     )
 
-    # Reference lines for Quadrant Analysis
     fig.add_vline(x=7, line_dash="dash", line_color="gray",
                   annotation_text="7-Day Latency Threshold")
     median_outlets = df["outlet_count"].median(
@@ -34,12 +94,13 @@ def build_quadrant_chart(df: pd.DataFrame):
     fig.add_hline(y=median_outlets, line_dash="dash",
                   line_color="gray", annotation_text="Median Outlet Spread")
 
-    fig.update_layout(
+    return apply_base_layout(
+        fig,
+        height=400,
+        margin=dict(l=20, r=20, t=30, b=20),
         xaxis_title="Days Latent (Age of Claim)",
-        yaxis_title="Outlets Amplifying Claim",
-        height=400
+        yaxis_title="Outlets Amplifying Claim"
     )
-    return fig
 
 
 def build_technique_breakdown(df: pd.DataFrame):
@@ -59,14 +120,16 @@ def build_technique_breakdown(df: pd.DataFrame):
         color_discrete_map=theme.VERDICT_CHART_COLOURS,
         title="Tactical Breakdown by Verdict Impact"
     )
-    fig.update_layout(
+
+    return apply_base_layout(
+        fig,
+        height=400,
+        margin=dict(l=20, r=20, t=30, b=20),
         barmode="stack",
         xaxis_title="Volume of Claims",
         yaxis_title="Disinformation Technique",
-        height=400,
         yaxis={'categoryorder': 'total ascending'}
     )
-    return fig
 
 
 def build_technique_latency_boxplot(df: pd.DataFrame):
@@ -84,13 +147,14 @@ def build_technique_latency_boxplot(df: pd.DataFrame):
         title="Statistical Latency Spread & Outliers by Technique (Days)"
     )
 
-    fig.update_layout(
+    return apply_base_layout(
+        fig,
+        height=400,
+        margin=dict(l=20, r=20, t=30, b=20),
         xaxis_title="Disinformation Technique",
         yaxis_title="Days Latent (Age/Resurfacing Delay)",
-        showlegend=False,
-        height=400
+        showlegend=False
     )
-    return fig
 
 
 def build_narrative_decay_curve(df: pd.DataFrame):
@@ -111,7 +175,7 @@ def build_narrative_decay_curve(df: pd.DataFrame):
         x=bin_centers,
         y=counts,
         name="Observed Claims",
-        marker_color="#3366CC",
+        marker_color=theme.COLOUR_PRIMARY,
         opacity=0.6
     ))
 
@@ -124,17 +188,17 @@ def build_narrative_decay_curve(df: pd.DataFrame):
             y=fit_y,
             mode="lines",
             name=f"Decay Curve Trend (λ={lambda_est:.3f})",
-            line=dict(color="#DC3912", width=3, dash="dash")
+            line=dict(color=theme.COLOUR_DANGER_FG, width=3, dash="dash")
         ))
 
-    fig.update_layout(
-        title="Propaganda Persistence & Decay Curve",
+    return apply_base_layout(
+        fig,
+        height=400,
+        margin=dict(l=20, r=20, t=30, b=20),
         xaxis_title="Days Elapsed Since Publication",
         yaxis_title="Claim Ingestion Density",
-        height=400,
         legend=dict(orientation="h", y=1.1)
     )
-    return fig
 
 
 def build_tfidf_keyword_chart(df: pd.DataFrame):
@@ -169,12 +233,12 @@ def build_tfidf_keyword_chart(df: pd.DataFrame):
             title="High-Risk Keywords Correlated with Disproven Claims (TF-IDF)"
         )
 
-        fig.update_layout(
+        return apply_base_layout(
+            fig,
+            height=400,
+            margin=dict(l=20, r=20, t=30, b=20),
             xaxis_title="TF-IDF Statistical Weight",
-            yaxis_title="Vocabulary / N-Gram",
-            height=400
+            yaxis_title="Vocabulary / N-Gram"
         )
-        return fig
     except ValueError:
-        # Handles cases where text corpus is empty or contains only stop words
         return None
