@@ -2,12 +2,12 @@
 
 import streamlit as st
 from dotenv import load_dotenv
-
 from auth import check_password
 from visual_components import theme
 from visual_components.components import sidebar
 from visual_components.views import (
     claim_verification,
+    claims_analytics,
     disproven_claims,
     outlet_analytics,
     verification_logs,
@@ -37,6 +37,7 @@ VIEWS = {
     "Latest Disproven Claims": disproven_claims.render,
     "Verification Logs": verification_logs.render,
     "Outlet Analytics": outlet_analytics.render,
+    "Claims Analytics": claims_analytics.render,
 }
 
 sidebar.render_sidebar_logo()

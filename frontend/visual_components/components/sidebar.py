@@ -1,7 +1,6 @@
 """Sidebar branding and status panel."""
 
 import streamlit as st
-
 from .. import theme
 
 

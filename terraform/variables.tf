@@ -83,3 +83,8 @@ variable "rds_sg_id" {
     description = "Security group ID for RDS instance"
     type = string
 }
+
+variable "state_machine_arn" {
+    description = "ARN of the state machine"
+    type = string
+}

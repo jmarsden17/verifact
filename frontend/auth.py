@@ -1,7 +1,6 @@
 """Password gate for the dashboard."""
 
 import os
-
 import streamlit as st
 
 DEFAULT_PASSWORD = "disinformation"

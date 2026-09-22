@@ -1,7 +1,6 @@
 """Page header with the brand icon."""
 
 import streamlit as st
-
 from .. import theme
 
 

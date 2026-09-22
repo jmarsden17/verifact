@@ -2,7 +2,6 @@
 
 import pandas as pd
 import plotly.express as px
-
 from .. import theme
 from ._base import TOP_RIGHT_LEGEND, apply_base_layout
 

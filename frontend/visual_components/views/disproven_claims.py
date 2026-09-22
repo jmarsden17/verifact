@@ -1,9 +1,7 @@
 """Latest Disproven Claims page: newest false / misleading claims, with source links."""
 
 import streamlit as st
-
 from database_conns import disproven_claims as data
-
 from ..components.claim_card import render_disproven_claim_card
 from ..components.header import render_page_header
 
