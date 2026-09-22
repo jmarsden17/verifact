@@ -97,9 +97,12 @@ def add_claims_to_database(conn: connection, data: list[tuple]) -> dict:
         """
 
         execute_values(cursor, query, data)
-        rows = cursor.fetchall()
-        conn.commit()
-    return {row["claim"]: row["claim_id"] for row in rows}
+        try:
+            rows = cursor.fetchall()
+            conn.commit()
+            return {row["claim"]: row["claim_id"] for row in rows}
+        except:
+            return None
 
 
 def add_claim_tags_to_database(conn: connection, data: list[tuple]) -> None:
@@ -128,9 +131,12 @@ def add_source_to_database(conn: connection, data: list[tuple]) -> list[int]:
         """
 
         execute_values(cursor, query, data)
-        rows = cursor.fetchall()
-        conn.commit()
-    return {row["source_url"]: row["source_id"] for row in rows}
+        try:
+            rows = cursor.fetchall()
+            conn.commit()
+            return {row["source_url"]: row["source_id"] for row in rows}
+        except:
+            return None
 
 
 def add_claim_source_to_database(conn: connection, data: list[tuple]) -> None:
