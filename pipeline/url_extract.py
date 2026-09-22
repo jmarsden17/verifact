@@ -20,7 +20,7 @@ def extract_url(url: str) -> dict:
         }
 
     except Exception as e:
-        logging.error("Cannot extract from URL")
+        logging.error("Cannot extract from URL: %s", e)
         return {
             "error": e
         }
