@@ -38,11 +38,16 @@ resource "aws_iam_role_policy" "claim_verification_lambda_policy" {
   })
 }
 
+resource "aws_iam_role_policy_attachment" "verify_vpc_access" {
+  role       = aws_iam_role.claim_verification_lambda_role.id
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+}
+
 resource "aws_lambda_function" "claim_verification_lambda" {
     function_name = "c25_disinformation_claim_verification"
     role = aws_iam_role.claim_verification_lambda_role.arn
     package_type = "Image"
-    image_uri = "" # Need image here
+    image_uri = "129033205317.dkr.ecr.eu-west-2.amazonaws.com/c25-disinformation-ecr-claim-verification:latest" # Need image here
 
     memory_size = 512
     timeout = 120

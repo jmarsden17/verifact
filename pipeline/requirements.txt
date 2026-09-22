@@ -6,8 +6,9 @@ pydantic
 python-dotenv
 firecrawl-py
 openai
-newspaper3k
 lxml[html-clean]
 pandas
 boto3
 psycopg2-binary
+pytextrank
+trafilatura
