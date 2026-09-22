@@ -3,3 +3,4 @@ openai
 python-dotenv
 pydantic
 pgvector
+boto3
