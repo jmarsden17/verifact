@@ -66,4 +66,6 @@ def generate_embeddings(claim: str) -> list[float]:
         dimensions=1536
     )
     embedding_vector = response.data[0].embedding
+
+    logging.info("Generated embedding vector for claim: %s", claim)
     return embedding_vector
