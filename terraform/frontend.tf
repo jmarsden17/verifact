@@ -40,6 +40,16 @@ data "aws_iam_policy_document" "dashboard_task_permissions_doc" {
     actions   = ["ssm:GetParameters"]
     resources = ["*"]
   }
+  statement {
+    effect    = "Allow"
+    actions   = ["states:StartExecution"]
+    resources = [var.state_machine_arn]
+  }
+  statement {
+    effect    = "Allow"
+    actions   = ["states:DescribeExecution"]
+    resources = ["${replace(var.state_machine_arn, ":stateMachine:", ":execution:")}:*"]
+  }
 }
 
 resource "aws_iam_policy" "dashboard_task_policy" {
@@ -86,7 +96,8 @@ resource "aws_ecs_task_definition" "dashboard_task" {
         { name = "DB_PORT", value = "5432" },
         { name = "DB_NAME", value = var.db_name },
         { name = "DB_USER", value = var.db_user },
-        { name = "DB_PASSWORD", value = var.db_password }
+        { name = "DB_PASSWORD", value = var.db_password },
+        { name = "STATE_MACHINE_ARN", value = var.state_machine_arn }
       ]
 
       healthCheck = {

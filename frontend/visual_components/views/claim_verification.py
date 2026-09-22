@@ -42,10 +42,13 @@ def render():
     submit, claim_input, url_input = render_verification_form()
 
     if submit:
-        results = fn.verify_claim(claim_input, url_input)
-        if not results:
+        if not claim_input.strip():
             st.warning(
                 "Please select a sample claim above or enter text to verify.")
             return
-
+        results = fn.verify_claim(claim_input, url_input)
+        if not results:
+            st.info(
+                "No verifiable claims were found in that text — try a more specific statement.")
+            return
         _render_results(results)
