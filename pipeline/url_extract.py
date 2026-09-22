@@ -27,7 +27,7 @@ def extract_with_firecrawl(url: str) -> str:
         app = Firecrawl(api_key=environ['FIRECRAWL_API_KEY'])
         result = app.scrape(url)
         if isinstance(result, dict) and 'markdown' in result:
-            logging.info("Successfully extracted URL with Firecrawl")
+            logging.info("Successfully extracted URL with FireCrawl")
             return result['markdown']
     except Exception as e:
         logging.warning('Failed to extract with FireCrawl: %s', e)
