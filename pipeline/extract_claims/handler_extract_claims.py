@@ -3,6 +3,7 @@
 import os
 import logging
 import json
+import uuid
 from openai import OpenAI
 from dotenv import load_dotenv
 import boto3
@@ -57,7 +58,8 @@ def handler(event=None, context=None):
 
     # Upload to S3
     s3_client = boto3.client('s3')
-    key = 'extract_claims.json'
+    unique_folder = uuid.uuid4()
+    key = f'{unique_folder}/extract_claims.json'
     s3_client.put_object(
         Bucket='c25-disinformation-lambda',
         Key=key,
@@ -83,7 +85,8 @@ def handler(event=None, context=None):
         "statusCode": 200,
         "s3_reference": {
             "bucket": "c25-disinformation-lambda",
-            "key": key
+            "key": key,
+            "folder_name": unique_folder
         }
     }
 
