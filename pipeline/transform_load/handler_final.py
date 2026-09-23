@@ -40,6 +40,7 @@ def handler(event=None, context=None) -> dict:
             verdict['claim'] = key
             verdict['summary'] = combined[key]['summary']['summary']
             verdict['confidence_score'] = combined[key]['summary']['confidence_score']
+            verdict['verdict'] = combined[key]['summary']['overall_verdict']
 
         verdict_list.append(verdicts)
         verdict_list.append(combined[key]['summary'])
