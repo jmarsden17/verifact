@@ -102,7 +102,7 @@ def add_claims_to_database(conn: connection, data: list[tuple]) -> dict:
             conn.commit()
             return {row["claim"]: row["claim_id"] for row in rows}
         except:
-            return None
+            return None  # TODO: Or None, run test to check
 
 
 def add_claim_tags_to_database(conn: connection, data: list[tuple]) -> None:
@@ -136,7 +136,7 @@ def add_source_to_database(conn: connection, data: list[tuple]) -> list[int]:
             conn.commit()
             return {row["source_url"]: row["source_id"] for row in rows}
         except:
-            return None
+            return None  # TODO: Or None, run test to check
 
 
 def add_claim_source_to_database(conn: connection, data: list[tuple]) -> None:
@@ -294,7 +294,8 @@ def load(data: pd.DataFrame) -> None:
     claim_map = main_claim_insertion_function(conn, data)
     logging.info("Successfully added claims to database")
 
-    data['claim_id'] = data['claim'].map(claim_map)
+    if claim_map is not None:
+        data['claim_id'] = data['claim'].map(claim_map)
 
     # Insert into claim_tags table
     main_claim_tags_insertion_function(conn, data)
@@ -304,8 +305,9 @@ def load(data: pd.DataFrame) -> None:
     source_map = main_source_insertion_function(conn, data)
     logging.info("Successfully added source to database")
 
-    data['source_id'] = data['sources'].map(source_map)
+    if source_map is not None:
+        data['source_id'] = data['sources'].map(source_map)
 
-    # Insert into claim_source table:
-    main_claim_source_insertion_function(conn, data)
-    logging.info("Successfully added claim_source to database")
+        # Insert into claim_source table:
+        main_claim_source_insertion_function(conn, data)
+        logging.info("Successfully added claim_source to database")

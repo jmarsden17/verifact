@@ -166,7 +166,8 @@ def test_clean_categorical_list(values, expected):
 @pytest.mark.parametrize("values, expected", [
     pytest.param(["UK", "UK", "ONS"], ["UK", "ONS"], id="exact duplicates"),
     pytest.param(["UK", "uk", "ONS"], ["UK", "ONS"], id="ignores case"),
-    pytest.param(["b", "a", "b", "c"], ["b", "a", "c"], id="keeps first position"),
+    pytest.param(["b", "a", "b", "c"], ["b", "a", "c"],
+                 id="keeps first position"),
     pytest.param(["a", "b", "c"], ["a", "b", "c"], id="no duplicates"),
     pytest.param([], [], id="empty list"),
 ])
@@ -254,7 +255,7 @@ def make_record(**overrides):
         "misinformation_type": "None",
         "entities": [],
         "tags": [],
-        "sources": [],
+        "sources": None,
         "source_name": "Full Fact",
     }
     record.update(overrides)
