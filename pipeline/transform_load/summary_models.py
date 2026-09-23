@@ -27,6 +27,28 @@ TechniqueTag = Literal[tuple(TECHNIQUE_TAGS)]
 
 class SummaryResult(BaseModel):
     """Result of summarizing multiple source claims and their corresponding verdicts."""
+
+    clear_verdict_count: int = Field(
+        description="Number of sources that gave a clear, non-abstaining verdict "
+        "(i.e. anything other than 'Unclear / Not enough evidence')."
+    )
+    abstention_count: int = Field(
+        description="Number of sources that returned 'Unclear / Not enough evidence'. "
+        "These sources took no position and must NOT be treated as evidence against "
+        "the claim, and must not by themselves cause the claim to be labeled unclear."
+    )
+    consensus_among_clear_verdicts: str = Field(
+        description="Describe the agreement level ONLY among sources that gave a clear "
+        "verdict (ignore abstentions entirely for this field). E.g. 'unanimous - all "
+        "3 clear sources rated this False', or 'split - 2 sources rated False, 1 rated True'. "
+        "If there is only 0 or 1 clear verdict, say so explicitly."
+    )
+
+    overall_verdict:  Literal["Supported", "Contradicted",
+                              "Mixed / Missing Context", "Unclear / Not enough evidence"] = Field(
+        description="The overall verdict for the claim, taking into account all clear verdicts and ignoring abstentions."
+    )
+
     summary: str = Field(
         description="A concise summary that captures the overall consensus and key points of the claims and their corresponding verdicts."
     )
