@@ -65,7 +65,19 @@ def handler(event=None, context=None):
         ContentType='application/json'
     )
 
-    logging.info('Successfully loaded values into S3 Bucket')
+    logging.info('Successfully loaded extract_claims.json into S3 Bucket')
+
+    # Upload to S3
+    empty = json.dumps([])
+    s3_client.put_object(
+        Bucket='c25-disinformation-lambda',
+        Key='verify_claim.json',
+        Body=empty,
+        ContentType='application/json'
+    )
+
+    logging.info(
+        'Successfully cleared verify_claims.json into S3 Bucket')
 
     return {
         "statusCode": 200,
