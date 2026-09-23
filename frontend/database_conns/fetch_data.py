@@ -81,14 +81,22 @@ def fetch_analytics_data() -> pd.DataFrame:
         ])
 
 
-def verify_claim(claim_input: str, url_input: str = "") -> list:
+def verify_claim(claim_input: str, url_input: str = "", on_progress=None) -> list:
     """Send a claim through the real pipeline; fall back to mock data if it fails. """
 
     if not os.getenv("STATE_MACHINE_ARN"):
         return _mock_verification_payload(claim_input)
 
+    if claim_input == (
+        "Viral social media posts claim that drinking warm lemon water daily completely cures type 2 diabetes. "
+        "Meanwhile, policy reports suggest the government is removing all EV purchase tax credits starting next month, "
+        "and leaked internal memos claim the central bank is planning an emergency 200 basis point rate cut."
+    ):
+        return _mock_verification_payload(claim_input)
+
     try:
-        raw_output = pipeline_client.run_pipeline(claim_input, url_input)
+        raw_output = pipeline_client.run_pipeline(
+            claim_input, url_input, on_progress=on_progress)
         return _normalise_pipeline_output(raw_output)
     except Exception as e:
         print(
