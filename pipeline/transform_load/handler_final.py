@@ -17,6 +17,7 @@ def handler(event=None, context=None) -> dict:
     s3_client = boto3.client('s3')
     bucket_name = event['s3_reference']['bucket']
     extract_key = event['s3_reference']['key']
+    folder_name = event['s3_reference']['folder_name']
 
     response = s3_client.get_object(Bucket=bucket_name, Key=extract_key)
 
