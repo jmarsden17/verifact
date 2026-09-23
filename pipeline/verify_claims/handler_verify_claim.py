@@ -31,7 +31,6 @@ def handler(event=None, context=None):
 
     claims_data = new_event["body"]['to_process']
 
-
     results = []
 
     logging.info(
