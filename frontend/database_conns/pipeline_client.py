@@ -54,7 +54,7 @@ def _build_input(claim_input: str, url_input: str) -> dict:
 
     if claim_input.strip() and url_input:
         # Text and URL.
-        text = f"{claim_input.strip()}\n\nSource URL: {url_input.strip()}"
+        text = f"{claim_input.strip()}"
         return {"user_text": text}
 
     if not claim_input.strip() and not url_input:
