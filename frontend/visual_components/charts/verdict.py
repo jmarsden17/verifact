@@ -19,6 +19,7 @@ def build_confidence_gauge(confidence: float):
     cx, cy, r = 100, 110, 80
     circumference = math.pi * r
     dash_offset = circumference * (1 - confidence / 100)
+    confidence = round(confidence)
 
     tick_radius = r + 16
     tick_labels = []
