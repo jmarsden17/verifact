@@ -5,13 +5,20 @@ from os import environ
 import logging
 from dotenv import load_dotenv
 import trafilatura
+from trafilatura.settings import use_config
 from firecrawl import Firecrawl
 
 
-def extract_with_trafilatura(url: str) -> str:
+TRAFILATURA_TIMEOUT_SECONDS = 10
+
+
+def extract_with_trafilatura(url: str) -> str | None:
     """Scrapes web content with trafilatura"""
     try:
-        downloaded = trafilatura.fetch_url(url)
+        config = use_config()
+        config.set("DEFAULT", "DOWNLOAD_TIMEOUT",
+                    str(TRAFILATURA_TIMEOUT_SECONDS))
+        downloaded = trafilatura.fetch_url(url, config=config)
         result = trafilatura.extract(downloaded)
         if result:
             logging.info('Successfully extracted URL with Trafilatura')
@@ -21,21 +28,28 @@ def extract_with_trafilatura(url: str) -> str:
     return None
 
 
-def extract_with_firecrawl(url: str) -> str:
+def extract_with_firecrawl(url: str) -> str | None:
     """Scrapes web content using FireCrawl"""
+    api_key = environ.get('FIRECRAWL_API_KEY')
+    if not api_key:
+        logging.error(
+            'FIRECRAWL_API_KEY is not set; skipping FireCrawl extraction')
+        return None
+
     try:
-        app = Firecrawl(api_key=environ['FIRECRAWL_API_KEY'])
+        app = Firecrawl(api_key=api_key)
         result = app.scrape(url)
-        if isinstance(result, dict) and 'markdown' in result:
+        markdown = result.get('markdown') if isinstance(result, dict) else None
+        if markdown:
             logging.info("Successfully extracted URL with FireCrawl")
-            return result['markdown']
+            return markdown
     except Exception as e:
         logging.warning('Failed to extract with FireCrawl: %s', e)
     return None
 
 
-def extract_url(url: str) -> str:
-    """Extracts information from URL"""
+def extract_url(url: str) -> str | None:
+    """Extracts information from URL."""
     logging.info("Attempt extraction with Trafilatura")
     extraction = extract_with_trafilatura(url)
     if extraction:
