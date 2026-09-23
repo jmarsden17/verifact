@@ -1,4 +1,4 @@
-from link_verifier import is_valid_url, ssl_check, verify_url
+from database_conns.link_verifier import is_valid_url, ssl_check, verify_url
 
 
 def test_is_valid_url():

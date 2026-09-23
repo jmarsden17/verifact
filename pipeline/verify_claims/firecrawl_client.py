@@ -16,8 +16,10 @@ def extract(claim: str, site: str):
     )
     output = []
     urls = []
-    for r in results.web:
-        output.append(
-            f"Source URL: {r.metadata.url}\n{r.markdown or r.metadata.description}")
-        urls.append(r.metadata.url)
+    for r in results.web or []:
+        url = getattr(r, "url", None)
+        description = getattr(r, "description", None)
+        markdown = getattr(r, "markdown", None)
+        output.append(f"Source URL: {url}\n{markdown or description}")
+        urls.append(url)
     return "\n".join(output), urls

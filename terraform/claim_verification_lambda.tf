@@ -34,6 +34,17 @@ resource "aws_iam_role_policy" "claim_verification_lambda_policy" {
         ]
 
         Resource = "*"
+      },
+            {
+        Effect = "Allow"
+
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:ListBucket"
+        ]
+
+        Resource = "*"
       }]
   })
 }
