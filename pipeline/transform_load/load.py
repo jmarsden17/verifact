@@ -102,7 +102,7 @@ def add_claims_to_database(conn: connection, data: list[tuple]) -> dict:
             conn.commit()
             return {row["claim"]: row["claim_id"] for row in rows}
         except:
-            return None  # TODO: Or None, run test to check
+            return None
 
 
 def add_claim_tags_to_database(conn: connection, data: list[tuple]) -> None:
@@ -136,7 +136,7 @@ def add_source_to_database(conn: connection, data: list[tuple]) -> list[int]:
             conn.commit()
             return {row["source_url"]: row["source_id"] for row in rows}
         except:
-            return None  # TODO: Or None, run test to check
+            return None
 
 
 def add_claim_source_to_database(conn: connection, data: list[tuple]) -> None:
