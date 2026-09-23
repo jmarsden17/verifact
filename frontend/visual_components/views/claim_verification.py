@@ -34,7 +34,7 @@ def render():
 
     render_page_header(
         "Claim Verification Workspace",
-        "Submit headlines, quotes, or social media statements to check against primary fact-checking records."
+        "Submit headlines, quotes, or URLs to check against primary fact-checking records."
     )
 
     _init_form_state()
@@ -48,7 +48,17 @@ def render():
                 "Please select a sample claim above or enter text to verify.")
             return
 
-        results = fn.verify_claim(claim_input, url_input)
+        progress_bar = st.progress(0, text="Starting verification pipeline…")
+
+        def _update_progress(waited: int, max_wait: int, status: str):
+            fraction = min(waited / max_wait, 1.0)
+            progress_bar.progress(
+                fraction, text=f"Pipeline status: {status} ({waited}s)")
+
+        results = fn.verify_claim(
+            claim_input, url_input, on_progress=_update_progress)
+        progress_bar.empty()
+
         if not results:
             st.info(
                 "No verifiable claims were found in that text — try a more specific statement.")

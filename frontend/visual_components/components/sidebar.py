@@ -22,13 +22,14 @@ def render_sidebar_logo():
                 <path d="M 33 46 L 36 49 L 43 42" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
             </g>
             <!-- Brand Text -->
-            <text x="64" y="32" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-weight="700" font-size="15" fill="#0F172A" letter-spacing="0.5">DISINFORMATION</text>
-            <text x="64" y="48" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-weight="700" font-size="15" fill="{theme.COLOUR_PRIMARY}" letter-spacing="0.5">VERIFIER</text>
-            <text x="64" y="62" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-weight="500" font-size="8.5" fill="#64748B" letter-spacing="1.2">FAST CLAIM AUDIT</text>
+            <text x="64" y="32" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-weight="700" font-size="20" fill="{theme.COLOUR_PRIMARY}" letter-spacing="0.5">VERIFACT</text>
+            <text x="64" y="48" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-weight="700" font-size="10" fill="#0F172A" letter-spacing="1.2">FAST CLAIM AUDIT</text>
         </svg>
     </div>
     """
     st.sidebar.markdown(logo_svg, unsafe_allow_html=True)
+
+# <text x="64" y="32" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-weight="700" font-size="15" fill="#0F172A" letter-spacing="0.5">VERIFACT</text>
 
 
 def render_system_status():

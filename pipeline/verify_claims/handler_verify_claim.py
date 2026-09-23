@@ -13,6 +13,9 @@ def handler(event=None, context=None):
     logging.basicConfig(level=logging.INFO)
     load_dotenv()
 
+    source_url = event.get("source_url", "")
+    source_name = event.get("source_name", "")
+
     s3_client = boto3.client('s3')
     bucket_name = event['s3_reference']['bucket']
     extract_key = event['s3_reference']['key']
@@ -90,13 +93,25 @@ def handler(event=None, context=None):
         "body": results
     })
 
+    # Read from S3 Bucket
+    bucket_name = 'c25-disinformation-lambda'
+    extract_key = 'verify_claim.json'
+
+    response = s3_client.get_object(Bucket=bucket_name, Key=extract_key)
+
+    verify_content_bytes = response['Body'].read()
+    verify_content_bytes = verify_content_bytes.decode('utf-8')
+
+    new_event = json.loads(verify_content_bytes)
+    new_event.append(json.loads(return_values))
+
     # Upload to S3
     s3_client = boto3.client('s3')
     key = f'{unique_folder}/verify_claim.json'
     s3_client.put_object(
         Bucket='c25-disinformation-lambda',
         Key=key,
-        Body=return_values,
+        Body=json.dumps(new_event),
         ContentType='application/json'
     )
 

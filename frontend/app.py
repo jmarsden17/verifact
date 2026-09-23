@@ -18,7 +18,7 @@ load_dotenv()
 
 # Page Config
 st.set_page_config(
-    page_title="Disinformation Verifier",
+    page_title="Verifact",
     page_icon="🔍",
     layout="wide",
     initial_sidebar_state="expanded"
