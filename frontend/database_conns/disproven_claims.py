@@ -4,8 +4,6 @@ import pandas as pd
 
 from .connection import get_db_connection
 
-# Whitelist: the sort choice from the UI is looked up here, never put into SQL directly.
-# NULLS LAST so claims with no date sink to the bottom instead of floating to the top.
 SORT_ORDERS = {
     "newest": "c.publish_datetime DESC NULLS LAST, c.access_datetime DESC NULLS LAST",
     "most_checked": "c.access_amount DESC NULLS LAST, c.publish_datetime DESC NULLS LAST",
@@ -41,14 +39,7 @@ QUERY = """
 
 def get_disproven_claims(sort: str = "newest", verdict: str = "All",
                          limit: int = 10) -> pd.DataFrame:
-    """Contradicted / Missing Context claims, newest (by publish date) first by default.
-
-    sort:    "newest" or "most_checked" (how many times the claim was looked up)
-    verdict: "All", "Contradicted" or "Missing Context"
-
-    If the database can't be reached, returns clearly-marked sample data
-    (df.attrs["is_sample"] is True) so the page can warn the user.
-    """
+    """Contradicted / Missing Context claims, newest (by publish date) first by default."""
 
     order_by = SORT_ORDERS.get(sort, SORT_ORDERS["newest"])
     params = []
@@ -123,6 +114,7 @@ def _sample_claims(sort: str, verdict: str, limit: int) -> pd.DataFrame:
         df = df[df["verdict"].str.lower() == verdict.lower()]
 
     sort_column = "access_amount" if sort == "most_checked" else "publish_datetime"
-    df = df.sort_values(sort_column, ascending=False).head(limit).reset_index(drop=True)
+    df = df.sort_values(sort_column, ascending=False).head(
+        limit).reset_index(drop=True)
     df.attrs["is_sample"] = True
     return df
