@@ -9,6 +9,7 @@ from ._base import TOP_RIGHT_LEGEND, apply_base_layout
 
 def _explode_publishers(df: pd.DataFrame) -> pd.DataFrame:
     """Return one row per (claim, publisher)."""
+
     chart_df = df.copy()
     chart_df["publisher"] = (
         chart_df["publisher"].fillna("Unknown").astype(str).str.split(", ")
@@ -21,6 +22,7 @@ def _explode_publishers(df: pd.DataFrame) -> pd.DataFrame:
 
 def build_outlet_chart(df: pd.DataFrame):
     """Build the publisher volume chart, or None if there is nothing to plot."""
+
     if df.empty or "publisher" not in df.columns:
         return None
 
@@ -46,6 +48,7 @@ def build_outlet_chart(df: pd.DataFrame):
 
 def build_quick_top_outlets_bar(exploded_df: pd.DataFrame):
     """Quick summary bar chart of top 5 outlets by claim volume."""
+
     if exploded_df.empty or "publisher" not in exploded_df.columns:
         return None
 
@@ -73,6 +76,7 @@ def build_quick_top_outlets_bar(exploded_df: pd.DataFrame):
 
 def build_quick_outlet_verdict_breakdown(exploded_df: pd.DataFrame):
     """Quick summary stacked horizontal bar of verdict proportions for top 5 outlets."""
+
     if exploded_df.empty or "publisher" not in exploded_df.columns:
         return None
 
@@ -107,6 +111,7 @@ def build_quick_outlet_verdict_breakdown(exploded_df: pd.DataFrame):
 
 def build_falsehood_density_matrix(exploded_df: pd.DataFrame):
     """Scatter chart mapping total claim volume vs falsehood rate per outlet."""
+
     if exploded_df.empty or "publisher" not in exploded_df.columns:
         return None
 
@@ -148,6 +153,7 @@ def build_falsehood_density_matrix(exploded_df: pd.DataFrame):
 
 def build_syndication_network(df: pd.DataFrame):
     """Identifies outlets frequently sharing or co-publishing identical claims."""
+
     if df.empty or "publisher" not in df.columns:
         return None
 
@@ -193,6 +199,7 @@ def build_syndication_network(df: pd.DataFrame):
 
 def build_jaccard_similarity_heatmap(df: pd.DataFrame):
     """Calculates Jaccard Similarity Index to show synchronized publishing networks."""
+
     if df.empty or "publisher" not in df.columns:
         return None
 

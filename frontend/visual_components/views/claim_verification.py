@@ -34,7 +34,7 @@ def render():
 
     render_page_header(
         "Claim Verification Workspace",
-        "Submit headlines, quotes, or social media statements to check against primary fact-checking records."
+        "Submit headlines, quotes, or URLs to check against primary fact-checking records."
     )
 
     _init_form_state()

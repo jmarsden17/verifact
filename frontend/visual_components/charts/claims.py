@@ -11,6 +11,7 @@ from ._base import apply_base_layout
 
 def build_quick_verdict_donut(df: pd.DataFrame):
     """Quick summary donut chart showing overall verdict distribution using brand colours."""
+
     if df.empty or "verdict" not in df.columns:
         return None
 
@@ -44,6 +45,7 @@ def build_quick_verdict_donut(df: pd.DataFrame):
 
 def build_quick_top_tactics_bar(df: pd.DataFrame):
     """Quick summary horizontal bar chart of top 5 tactics."""
+
     if df.empty or "technique" not in df.columns:
         return None
 
@@ -71,6 +73,7 @@ def build_quick_top_tactics_bar(df: pd.DataFrame):
 
 def build_quadrant_chart(df: pd.DataFrame):
     """4-Quadrant Scatter Plot: Amplification (Outlets) vs Latency (Days)."""
+
     if df.empty or "days_latent" not in df.columns or "outlet_count" not in df.columns:
         return None
 
@@ -105,6 +108,7 @@ def build_quadrant_chart(df: pd.DataFrame):
 
 def build_technique_breakdown(df: pd.DataFrame):
     """Stacked bar chart detailing techniques grouped by verdict."""
+
     if df.empty or "technique" not in df.columns or "verdict" not in df.columns:
         return None
 
@@ -134,6 +138,7 @@ def build_technique_breakdown(df: pd.DataFrame):
 
 def build_technique_latency_boxplot(df: pd.DataFrame):
     """Boxplot showing Median, Interquartile Range (IQR), and Outliers for claim latency."""
+
     if df.empty or "days_latent" not in df.columns or "technique" not in df.columns:
         return None
 
@@ -159,6 +164,7 @@ def build_technique_latency_boxplot(df: pd.DataFrame):
 
 def build_narrative_decay_curve(df: pd.DataFrame):
     """Fits an exponential decay curve to quantify how quickly claims fade out."""
+
     if df.empty or "days_latent" not in df.columns:
         return None
 
@@ -203,6 +209,7 @@ def build_narrative_decay_curve(df: pd.DataFrame):
 
 def build_tfidf_keyword_chart(df: pd.DataFrame):
     """Uses TF-IDF term weighting to isolate vocabulary overrepresented in disproven claims."""
+
     if df.empty or "claim" not in df.columns or "verdict" not in df.columns:
         return None
 
@@ -211,13 +218,13 @@ def build_tfidf_keyword_chart(df: pd.DataFrame):
         return None
 
     try:
-        vectorizer = TfidfVectorizer(
+        vectoriser = TfidfVectorizer(
             stop_words="english", max_features=15, ngram_range=(1, 2))
-        tfidf_matrix = vectorizer.fit_transform(
+        tfidf_matrix = vectoriser.fit_transform(
             contradicted_df["claim"].dropna())
 
         scores = tfidf_matrix.sum(axis=0).A1
-        words = vectorizer.get_feature_names_out()
+        words = vectoriser.get_feature_names_out()
 
         result_df = pd.DataFrame({"Term": words, "TF-IDF Score": scores}).sort_values(
             by="TF-IDF Score", ascending=True

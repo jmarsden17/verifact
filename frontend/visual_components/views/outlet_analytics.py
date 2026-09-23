@@ -18,10 +18,11 @@ from ..charts.outlet import (
 )
 
 
-# --- DATA PREPROCESSING HELPERS ---
+# Data processing
 
 def _filter_by_outlets(df: pd.DataFrame, selected_outlets: list) -> pd.DataFrame:
     """Isolate specific outlets if any are selected."""
+
     if not selected_outlets:
         return df
     return df[df["publisher"].isin(selected_outlets)]
@@ -29,15 +30,17 @@ def _filter_by_outlets(df: pd.DataFrame, selected_outlets: list) -> pd.DataFrame
 
 def _filter_by_volume(df: pd.DataFrame, min_volume: int) -> pd.DataFrame:
     """Filter out outlets below the minimum claim volume threshold."""
+
     counts = df["publisher"].value_counts()
     valid_outlets = counts[counts >= min_volume].index
     return df[df["publisher"].isin(valid_outlets)]
 
 
-# --- UI COMPONENT FUNCTIONS ---
+# UI functions
 
 def _render_publisher_filters(exploded_df: pd.DataFrame) -> tuple:
     """Render publisher dropdowns and volume thresholds."""
+
     col_out, col_thresh = st.columns([3, 1])
 
     with col_out:
@@ -53,6 +56,7 @@ def _render_publisher_filters(exploded_df: pd.DataFrame) -> tuple:
 
 def _render_explained_filter_bar(exploded_df: pd.DataFrame) -> pd.DataFrame:
     """Render collapsible publisher filter panel and return filtered dataset."""
+
     with st.expander("🔍 Publisher Search & Filters (Click to expand guidance)", expanded=True):
         selected_outlets, min_volume = _render_publisher_filters(exploded_df)
 
@@ -63,6 +67,7 @@ def _render_explained_filter_bar(exploded_df: pd.DataFrame) -> pd.DataFrame:
 
 def _render_quick_summary_row(exploded_df: pd.DataFrame):
     """Quick, on-the-go visual summaries for journalists."""
+
     col1, col2 = st.columns(2)
 
     with col1:
@@ -74,10 +79,11 @@ def _render_quick_summary_row(exploded_df: pd.DataFrame):
         show_chart(build_quick_outlet_verdict_breakdown(exploded_df))
 
 
-# --- SECTION RENDERING HELPERS ---
+# Section rendering helpers
 
 def _render_network_risk_section(filtered_exploded: pd.DataFrame, raw_df: pd.DataFrame):
     """Render reliability scatter matrix and co-publishing network bar chart."""
+
     col_rel, col_net = st.columns(2)
 
     with col_rel:
@@ -101,6 +107,7 @@ def _render_network_risk_section(filtered_exploded: pd.DataFrame, raw_df: pd.Dat
 
 def _render_coordination_matrix_section(raw_df: pd.DataFrame):
     """Render Jaccard media overlap heatmap."""
+
     render_section_heading("Media Coordination & Overlap Matrix",
                            "Clusters indicate synchronized publishing across outlets.")
     show_chart(build_jaccard_similarity_heatmap(raw_df))
@@ -111,6 +118,7 @@ def _render_coordination_matrix_section(raw_df: pd.DataFrame):
 
 def _build_scorecard_dataframe(filtered_exploded: pd.DataFrame) -> pd.DataFrame:
     """Aggregate statistics to form the publisher scorecard table."""
+
     scorecard = filtered_exploded.groupby("publisher").agg(
         total_claims=("claim_id", "nunique"),
         contradicted=("verdict", lambda x: (x == "Contradicted").sum()),
@@ -130,6 +138,7 @@ def _build_scorecard_dataframe(filtered_exploded: pd.DataFrame) -> pd.DataFrame:
 
 def _render_scorecard_section(filtered_exploded: pd.DataFrame):
     """Render summary table and table field notes."""
+
     render_section_heading("Publisher Reliability Scorecard",
                            "Monitored media outlets ranked by volume and flagged ratio.")
 
@@ -155,10 +164,11 @@ def _render_scorecard_section(filtered_exploded: pd.DataFrame):
         """)
 
 
-# --- MAIN ENTRYPOINT ---
+# Main page
 
 def render():
     """Main view rendering logic."""
+
     render_page_header(
         "Outlet & Source Network Intelligence",
         "Audit media reliability, expose coordinated republishing networks, and pinpoint high-risk news sources."

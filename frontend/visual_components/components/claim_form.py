@@ -1,6 +1,7 @@
 """Input widgets for the Claim Verification page."""
 
 import streamlit as st
+from .. import theme
 
 DEMO_PARAGRAPH = (
     "Viral social media posts claim that drinking warm lemon water daily completely cures type 2 diabetes. "
@@ -28,16 +29,34 @@ def render_verification_form():
 
     with st.form("claim_input_form", clear_on_submit=False):
         claim_input = st.text_area(
-            "Statement or Headline Text",
+            "Statements or Headline Text:",
             value=st.session_state.get("input_claim", ""),
             placeholder="e.g., 'Viral post claims drinking lemon water completely reverses diabetes.'",
             height=100
         )
         url_input = st.text_input(
-            "URL",
+            "URL:",
             value=st.session_state.get("input_url", ""),
-            placeholder="https://example.com/news/article"
+            type="url"
         )
+
+        st.markdown(
+            """
+            <div style="
+                background-color: {theme.GRADIENT_LOW_SCORE}; 
+                border-left: 4px solid {theme.GRADIENT_MID_SCORE}; 
+                padding: 6px 12px; 
+                border-radius: 4px; 
+                font-size: 13px; 
+                color: #1a535c; 
+                margin-top: -8px; 
+                margin-bottom: 12px;">
+                <b>Note:</b> If both text and a URL are provided, the URL will be omitted.
+            </div>
+            """.format(theme=theme),
+            unsafe_allow_html=True
+        )
+
         submit = st.form_submit_button("Verify Claim")
 
     return submit, claim_input, url_input

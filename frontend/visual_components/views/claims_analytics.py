@@ -20,7 +20,7 @@ from ..charts.claims import (
 )
 
 
-# --- DATA PREPROCESSING HELPERS ---
+# Data processing
 
 def _preprocess_claims_data(df: pd.DataFrame) -> pd.DataFrame:
     """Add calculated intelligence fields: days latent, outlet counts, and spread velocity."""
@@ -71,7 +71,7 @@ def _apply_metadata_filters(df: pd.DataFrame, verdicts: list, techniques: list, 
     return filtered
 
 
-# --- UI COMPONENT FUNCTIONS ---
+# UI functions
 
 def _render_filter_controls(df: pd.DataFrame) -> tuple:
     """Render filter UI inputs and return raw filter selections."""
@@ -162,7 +162,7 @@ def _render_quick_summary_row(df: pd.DataFrame):
         show_chart(build_quick_top_tactics_bar(df))
 
 
-# --- SECTION RENDERING HELPERS ---
+# Section rendering helpers
 
 def _render_velocity_section(df: pd.DataFrame):
     """Render quadrant chart and tactic breakdown."""
@@ -220,7 +220,7 @@ def _render_keywords_section(df: pd.DataFrame):
             "* **Editor Tip:** Use top-ranked phrases in social monitoring tools (e.g. TweetDeck) to flag unverified claims early.")
 
 
-# --- MAIN ENTRYPOINT ---
+# Main page
 
 def render():
     """Main view rendering logic."""
