@@ -52,7 +52,7 @@ def get_wiki_article(title: str) -> tuple:
             if page_id != "-1" and "extract" in page_data:
                 content = page_data["extract"]
                 url = page_data.get("fullurl")
-                return [content], [url]
+                return content, [url]
 
     except requests.RequestException as e:
         logging.error("Failed to retrieve article for %s: %s", title, e)
