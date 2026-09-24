@@ -3,7 +3,7 @@ import streamlit as st
 
 # Custom Brand Colours
 COLOUR_APP_BG = "#F3F4F6"
-COLOUR_SIDEBAR_BG = "#FFFFFF"
+COLOUR_SIDEBAR_BG = "#c3ddfa"
 COLOUR_CARD_BG = "#FFFFFF"
 COLOUR_BORDER = "#E2E8F0"
 COLOUR_TEXT_MAIN = "#0F172A"
