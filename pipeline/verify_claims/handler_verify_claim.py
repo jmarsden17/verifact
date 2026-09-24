@@ -19,6 +19,7 @@ def handler(event=None, context=None):
     s3_client = boto3.client('s3')
     bucket_name = event['s3_reference']['bucket']
     extract_key = event['s3_reference']['key']
+    unique_folder = event['s3_reference']['folder_name']
 
     response = s3_client.get_object(Bucket=bucket_name, Key=extract_key)
 
@@ -109,7 +110,7 @@ def handler(event=None, context=None):
 
     # Upload to S3
     s3_client = boto3.client('s3')
-    key = 'verify_claim.json'
+    key = f'{unique_folder}/verify_claim.json'
     s3_client.put_object(
         Bucket='c25-disinformation-lambda',
         Key=key,
@@ -123,6 +124,7 @@ def handler(event=None, context=None):
         "statusCode": 200,
         "s3_reference": {
             "bucket": "c25-disinformation-lambda",
-            "key": key
+            "key": key,
+            "folder_name": unique_folder
         }
     }

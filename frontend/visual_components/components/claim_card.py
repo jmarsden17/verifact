@@ -51,7 +51,7 @@ def _relative_date(value) -> str | None:
 
 
 def _as_link_list(value) -> list:
-    """source_links arrives as a list of {'outlet', 'url'} (or a JSON string)."""
+    """Source_links arrives as a list of {'outlet', 'url'} (or a JSON string)."""
 
     value = _clean(value)
     if isinstance(value, str):
