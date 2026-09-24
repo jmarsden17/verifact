@@ -24,3 +24,12 @@ resource "aws_ecr_repository" "c25-disinformation-ecr-claim-verification" {
 		scan_on_push = true
 	}
 }
+
+resource "aws_ecr_repository" "c25-disinformation-ecr-transform-load" {
+	name = "c25-disinformation-ecr-transform-load"
+	image_tag_mutability = "MUTABLE"
+	
+	image_scanning_configuration {
+		scan_on_push = true
+	}
+}
