@@ -1,10 +1,8 @@
 """
 A file that scrapes Wikipedia
 """
-
 import logging
 import requests
-from requests import get
 from bs4 import BeautifulSoup
 
 
@@ -15,7 +13,7 @@ def get_article_titles(claim: str) -> list[str]:
         "User-Agent": "VeriFact"
     }
 
-    res = get(wiki_url + claim, headers=headers, timeout=5)
+    res = requests.get(wiki_url + claim, headers=headers, timeout=5)
     soup = BeautifulSoup(res.content, features="html.parser")
 
     # Target links specifically inside search result headings
@@ -73,8 +71,3 @@ def wiki_search(claim: str) -> list[dict]:
         return get_wiki_article(title)
 
     return [], []
-
-
-if __name__ == "__main__":
-
-    print(wiki_search('moon is made of cheese.'))
