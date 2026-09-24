@@ -41,8 +41,9 @@ def get_article_content(link: str) -> dict[str, str]:
     return {
         "url": link,
         "title": soup.find("h1").get_text().strip(),
-        "content": soup.find("time")["datetime"],
-        "published": soup.find("main").get_text().strip()
+        "content": soup.find("main").get_text().strip(),
+        "published": soup.find("time")["datetime"] if soup.find("time") else ""
+
     }
     sleep(1)
 
@@ -61,6 +62,8 @@ def get_article_links(claim, site: str, source_url: str) -> list[str]:
 
 def extract_scrape(claim: str, site: str, source_url: str) -> list[dict]:
     """Returns scraped articles."""
+    claim = claim.strip()
+    claim = claim.replace(" ", "%20")
 
     links = get_article_links(claim, site, source_url)
 
