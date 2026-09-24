@@ -5,7 +5,7 @@ import json
 from dotenv import load_dotenv
 import boto3
 from verify_llm import compare_claims_with_article
-from firecrawl_client import extract
+from firecrawl_client import extract, extract_scrape
 
 
 def handler(event=None, context=None):
@@ -50,7 +50,12 @@ def handler(event=None, context=None):
 
         try:
             claim = claim_item.get("text")
-            extracted_article, urls = extract(claim, source_url)
+            if source_name == "BBC":
+                extracted_article, urls = extract_scrape(
+                    claim, source_url, "https://www.bbc.co.uk/news/articles")
+            else:
+                extracted_article, urls = extract(claim, source_url)
+
             if not extracted_article.strip():
                 verdict = {
                     "claim": claim,
