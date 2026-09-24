@@ -1,5 +1,8 @@
 # Disinformation Verifier
 
+![Tests](https://github.com/jmarsden17/verifact/actions/workflows/test.yml/badge.svg)
+![Code Quality](https://github.com/jmarsden17/verifact/actions/workflows/pylint.yml/badge.svg)
+
 A tool for journalists to check claims against trusted fact-checking sources. You paste in a claim, headline or article text and it returns a verdict, a plain English explanation and the sources it used. Every result is stored, so a claim that has already been checked is answered from the database instead of being checked again.
 
 ## Contents
