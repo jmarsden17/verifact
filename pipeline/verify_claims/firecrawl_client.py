@@ -9,7 +9,7 @@ from bs4 import BeautifulSoup
 from requests import get
 
 
-def extract(claim: str, site: str):
+def extract(claim: str, site: str) -> tuple:
     """Extract articles from a specific fact check site related to the given claim."""
     firecrawl = Firecrawl(api_key=os.environ["API_KEY"])
     domain = urlparse(site).netloc or site
@@ -45,7 +45,6 @@ def get_article_content(link: str) -> dict[str, str]:
         "published": soup.find("time")["datetime"] if soup.find("time") else ""
 
     }
-    sleep(1)
 
 
 def get_article_links(claim, site: str, source_url: str) -> list[str]:

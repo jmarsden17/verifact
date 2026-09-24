@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 import boto3
 from verify_llm import compare_claims_with_article
 from firecrawl_client import extract, extract_scrape
+from extract_wikipedia import wiki_search
 
 
 def handler(event=None, context=None):
@@ -54,9 +55,11 @@ def handler(event=None, context=None):
             if source_name == "BBC Verify":
                 data = extract_scrape(
                     claim, source_url, "https://www.bbc.co.uk/news/articles")
-
                 extracted_article = data[0]["content"] if data else ""
                 urls = [data[0]["url"]] if data else []
+
+            elif source_name == "Wikipedia API":
+                extracted_article, urls = wiki_search(claim)
 
             else:
                 extracted_article, urls = extract(claim, source_url)
