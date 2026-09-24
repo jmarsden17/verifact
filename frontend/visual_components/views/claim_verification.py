@@ -42,7 +42,6 @@ def render():
     submit, claim_input, url_input = render_verification_form()
 
     if submit:
-        st.write("Submitted values:", {"claim": claim_input, "url": url_input})
         if not claim_input.strip() and not url_input.strip():
             st.warning(
                 "Please select a sample claim above or enter text to verify.")
