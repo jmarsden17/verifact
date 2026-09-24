@@ -7,6 +7,7 @@ COPY handler_verify_claim.py .
 COPY verify_llm.py .
 COPY firecrawl_client.py .
 COPY verify_models.py .
+COPY extract_wikipedia.py .
 
 COPY . .
 
