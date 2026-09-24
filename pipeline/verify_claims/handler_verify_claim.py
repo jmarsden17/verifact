@@ -51,7 +51,7 @@ def handler(event=None, context=None):
 
         try:
             claim = claim_item.get("text")
-            if source_name == "BBC":
+            if source_name == "BBC Verify":
                 extracted_article, urls = extract_scrape(
                     claim, source_url, "https://www.bbc.co.uk/news/articles")
             else:
