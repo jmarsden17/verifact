@@ -5,7 +5,7 @@ import json
 from dotenv import load_dotenv
 import boto3
 from verify_llm import compare_claims_with_article
-from firecrawl_client import extract
+from firecrawl_client import extract, extract_scrape
 
 
 def handler(event=None, context=None):
@@ -30,15 +30,13 @@ def handler(event=None, context=None):
 
     logging.info('Successfully loaded values from S3 Bucket')
 
-    claims_data = new_event["body"]["to_process"]
-    source_url = new_event.get("source_url", "")
-    source_name = new_event.get("source_name", "")
-
+    claims_data = new_event['body']['to_process']
     results = []
 
     logging.info(
         "Starting verification of claims against the specified fact check site.")
     for claim_item in claims_data:
+        logging.info("Results: %s", results)
         if claim_item.get("skip_etl") is True:
             verdict = {
                 "claim": claim_item.get("text"),
@@ -53,7 +51,16 @@ def handler(event=None, context=None):
 
         try:
             claim = claim_item.get("text")
-            extracted_article, urls = extract(claim, source_url)
+            if source_name == "BBC Verify":
+                data = extract_scrape(
+                    claim, source_url, "https://www.bbc.co.uk/news/articles")
+
+                extracted_article = data[0]["content"] if data else ""
+                urls = [data[0]["url"]] if data else []
+
+            else:
+                extracted_article, urls = extract(claim, source_url)
+
             if not extracted_article.strip():
                 verdict = {
                     "claim": claim,
@@ -88,16 +95,20 @@ def handler(event=None, context=None):
             }
             results.append(verdict)
 
+    logging.info("Final results: %s", results)
+
     return_values = json.dumps({
         "statusCode": 200,
         "body": results
     })
 
+    logging.info("Return values to upload to S3: %s", return_values)
+
     # Read from S3 Bucket
     bucket_name = 'c25-disinformation-lambda'
-    extract_key = 'verify_claim.json'
+    key = f'{unique_folder}/verify_claim.json'
 
-    response = s3_client.get_object(Bucket=bucket_name, Key=extract_key)
+    response = s3_client.get_object(Bucket=bucket_name, Key=key)
 
     verify_content_bytes = response['Body'].read()
     verify_content_bytes = verify_content_bytes.decode('utf-8')
@@ -107,7 +118,6 @@ def handler(event=None, context=None):
 
     # Upload to S3
     s3_client = boto3.client('s3')
-    key = f'{unique_folder}/verify_claim.json'
     s3_client.put_object(
         Bucket='c25-disinformation-lambda',
         Key=key,

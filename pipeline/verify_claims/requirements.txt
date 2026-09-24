@@ -2,3 +2,4 @@ openai
 pydantic
 firecrawl
 python-dotenv
+bs4

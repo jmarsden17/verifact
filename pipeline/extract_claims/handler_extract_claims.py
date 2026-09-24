@@ -58,35 +58,34 @@ def handler(event=None, context=None):
 
     # Upload to S3
     s3_client = boto3.client('s3')
-    unique_folder = uuid.uuid4()
-    key = f'{unique_folder}/extract_claims.json'
+    unique_folder = str(uuid.uuid4())
+    key = f'{str(unique_folder)}/extract_claims.json'
     s3_client.put_object(
         Bucket='c25-disinformation-lambda',
-        Key=key,
+        Key=str(key),
         Body=return_values,
+        ContentType='application/json'
+    )
+
+    # Upload to S3
+    s3_client = boto3.client('s3')
+    empty = json.dumps([])
+    verify_key = f'{unique_folder}/verify_claim.json'
+    s3_client.put_object(
+        Bucket='c25-disinformation-lambda',
+        Key=str(verify_key),
+        Body=empty,
         ContentType='application/json'
     )
 
     logging.info('Successfully loaded extract_claims.json into S3 Bucket')
 
-    # Upload to S3
-    empty = json.dumps([])
-    s3_client.put_object(
-        Bucket='c25-disinformation-lambda',
-        Key='verify_claim.json',
-        Body=empty,
-        ContentType='application/json'
-    )
-
-    logging.info(
-        'Successfully cleared verify_claims.json into S3 Bucket')
-
     return {
         "statusCode": 200,
         "s3_reference": {
             "bucket": "c25-disinformation-lambda",
-            "key": key,
-            "folder_name": unique_folder
+            "key": str(key),
+            "folder_name": str(unique_folder)
         }
     }
 
@@ -105,3 +104,10 @@ def generate_embeddings(claim: str) -> list[float]:
     )
     embedding_vector = response.data[0].embedding
     return embedding_vector
+
+
+if __name__ == "__main__":
+    data = {
+        'user_text': 'Fishes live in water'
+    }
+    print(handler(event=data, context=None))

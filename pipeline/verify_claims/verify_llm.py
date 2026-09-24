@@ -17,8 +17,9 @@ def compare_claims_with_article(user_text: str, article_text: str) -> dict:
     )
     prompt = f"""
     Analyze the following verified article text in relation to the user's claim:
-    1. Compare the article's claims with the user's claim and identify any agreements or discrepancies.
-    2. Return exactly one of the allowed verdicts: "Supported", "Contradicted", "Missing Context", or "Unclear".    
+    1. First, ensure you ignore any irrelevant articles. The tool can sometimes return unrelated content. Ignore these if they are irrelevant for proving/disproving the claim.
+    2. Compare the article's claims with the user's claim and identify any agreements or discrepancies.
+    3. Return exactly one of the allowed verdicts: "Supported", "Contradicted", "Missing Context", or "Unclear".    
     User Claim:
     {user_text}
     Article Text:
