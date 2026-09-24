@@ -48,6 +48,14 @@ def render():
                 "Please select a sample claim above or enter text to verify.")
             return
 
+        st.html("""
+            <style>
+                div[data-testid="stProgress"] > div > div > div {
+                    transition: width 1s linear !important;
+                }
+            </style>
+        """)
+
         progress_bar = st.progress(0, text="Starting verification pipeline…")
 
         def _update_progress(waited: int, max_wait: int, status: str):
