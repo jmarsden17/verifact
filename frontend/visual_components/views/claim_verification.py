@@ -42,22 +42,29 @@ def render():
     submit, claim_input, url_input = render_verification_form()
 
     if submit:
-        st.write("Submitted values:", {"claim": claim_input, "url": url_input})
         if not claim_input.strip() and not url_input.strip():
             st.warning(
                 "Please select a sample claim above or enter text to verify.")
             return
 
-        progress_bar = st.progress(0, text="Starting verification pipeline…")
+        with st.status("Breaking down claims…", expanded=False) as status_container:
 
-        def _update_progress(waited: int, max_wait: int, status: str):
-            fraction = min(waited / max_wait, 1.0)
-            progress_bar.progress(
-                fraction, text=f"Pipeline status: {status} ({waited}s)")
+            def _update_progress(waited: int, max_wait: int, status: str):
+                """Update the status message based on the elapsed time."""
+                if waited < 4.5:
+                    status_container.update(label="Breaking down claims…")
+                elif waited < 9.0:
+                    status_container.update(label="Checking sources…")
+                elif waited < 13.5:
+                    status_container.update(label="Compiling summaries…")
+                else:
+                    status_container.update(label="Generating audit…")
 
-        results = fn.verify_claim(
-            claim_input, url_input, on_progress=_update_progress)
-        progress_bar.empty()
+            results = fn.verify_claim(
+                claim_input, url_input, on_progress=_update_progress)
+
+            status_container.update(
+                label="Verification complete!", state="complete")
 
         if not results:
             st.info(

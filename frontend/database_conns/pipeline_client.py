@@ -11,8 +11,8 @@ from database_conns.url_extract import extract_url
 AWS_REGION = os.getenv("AWS_DEFAULT_REGION", "eu-west-2")
 
 # How long the frontend will wait for a STANDARD (async) Step Function run.
-POLL_INTERVAL_SECONDS = 2
-MAX_WAIT_SECONDS = 50
+POLL_INTERVAL_SECONDS = 1
+MAX_WAIT_SECONDS = 300
 
 ProgressCallback = Optional[Callable[[int, int, str], None]]
 

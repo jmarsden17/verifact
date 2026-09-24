@@ -172,7 +172,7 @@ def _render_velocity_section(df: pd.DataFrame):
         render_section_heading(
             "Breaking Virality vs. Recycled Myths", "Quadrant breakdown of claim velocity.")
         show_chart(build_quadrant_chart(df))
-        with st.expander("💡 Reporter's Field Notes: How to use these findings"):
+        with st.expander("💡 How to use these findings"):
             st.markdown("""
             * **Top-Left (Breaking Viral Hoax):** Immediate fact-check alerts needed.
             * **Top-Right (Recycled Propaganda):** Look for political triggers that resurrected an old narrative.
@@ -182,7 +182,7 @@ def _render_velocity_section(df: pd.DataFrame):
         render_section_heading("Deception Tactics Breakdown",
                                "Manipulation tricks linked to disproven claims.")
         show_chart(build_technique_breakdown(df))
-        with st.expander("💡 Reporter's Field Notes: How to use these findings"):
+        with st.expander("💡 How to use these findings"):
             st.markdown("""
             * **Deepfake dominance:** Trace origins to fringe forums or channels.
             * **Policy Distortion dominance:** Request direct expert quotes to counter framing spin.
@@ -197,17 +197,17 @@ def _render_lifespan_section(df: pd.DataFrame):
         render_section_heading("Lifespan & Outliers by Tactic",
                                "Typical claim ages and outlier zombie myths.")
         show_chart(build_technique_latency_boxplot(df))
-        with st.expander("💡 Reporter's Field Notes: How to use these findings"):
+        with st.expander("💡 How to use these findings"):
             st.markdown(
-                "* **Far-Right Outliers:** Zombie myths that resurface periodically. Great for 'Why this myth returns' stories.")
+                "* **Far-Right Outliers:** 'Zombie' myths that resurface periodically. Great for 'Why this myth returns' stories.")
 
     with col_decay:
         render_section_heading(
             "How Fast Propaganda Dies Down", "Momentum loss over time.")
         show_chart(build_narrative_decay_curve(df))
-        with st.expander("💡 Reporter's Field Notes: How to use these findings"):
+        with st.expander("💡 How to use these findings"):
             st.markdown(
-                "* **Flattish Decay Curve:** Claim has taken root in search indexing. Ask platform safety teams for comment.")
+                "* **Flat Decay Curve:** Claim has taken root in search indexing. Ask platform safety teams for comment.")
 
 
 def _render_keywords_section(df: pd.DataFrame):
@@ -215,9 +215,9 @@ def _render_keywords_section(df: pd.DataFrame):
     render_section_heading("Red Flag Language in Disproven Claims",
                            "Buzzwords overrepresented in false claims.")
     show_chart(build_tfidf_keyword_chart(df))
-    with st.expander("💡 Reporter's Field Notes: How to use these findings"):
+    with st.expander("💡 How to use these findings"):
         st.markdown(
-            "* **Editor Tip:** Use top-ranked phrases in social monitoring tools (e.g. TweetDeck) to flag unverified claims early.")
+            "* **Editor Tip:** Use top-ranked phrases in social monitoring tools to flag unverified claims early.")
 
 
 # Main page

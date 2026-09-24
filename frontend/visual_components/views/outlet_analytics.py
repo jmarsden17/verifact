@@ -87,33 +87,39 @@ def _render_network_risk_section(filtered_exploded: pd.DataFrame, raw_df: pd.Dat
     col_rel, col_net = st.columns(2)
 
     with col_rel:
-        render_section_heading("Outlet Reliability Map",
-                               "Volume vs. proportion of disproven stories.")
+        render_section_heading(
+            "Outlet Reliability Map",
+            "Volume vs. proportion of disproven stories"
+        )
         show_chart(build_falsehood_density_matrix(filtered_exploded))
-        with st.expander("💡 Reporter's Field Notes: How to use these findings"):
+        with st.expander("💡 How to use these findings"):
             st.markdown("""
-            * **Top-Right Outlets:** High-risk hubs with high volumes and high falsehood rates.
-            * **Bottom-Right Outlets:** Highly reliable news sources with strong editorial checks.
+            * **Top-Right Outlets:** High-risk hubs with high volumes and high falsehood rates, avoid citing.
+            * **Bottom-Right Outlets:** Highly reliable news sources with strong verification checks, more likely to publish confirmed stories.
             """)
 
     with col_net:
-        render_section_heading("Top Co-Publishing Networks",
-                               "Outlets co-publishing identical claims.")
+        render_section_heading(
+            "Top Co-Publishing Networks",
+            "Outlets publishing near identical claims",)
         show_chart(build_syndication_network(raw_df))
-        with st.expander("💡 Reporter's Field Notes: How to use these findings"):
+        with st.expander("💡 How to use these findings"):
             st.markdown(
-                "* **Investigative Lead:** Repeated pairings signal shared syndication agreements or automated scraping.")
+                "* **Investigative Lead:** Repeated pairings signal shared syndication agreements or automated scraping from similar places. Good to note that they may have similar sources or a hidden relationship.")
 
 
 def _render_coordination_matrix_section(raw_df: pd.DataFrame):
     """Render Jaccard media overlap heatmap."""
 
-    render_section_heading("Media Coordination & Overlap Matrix",
-                           "Clusters indicate synchronized publishing across outlets.")
+    render_section_heading(
+        "Media Coordination & Overlap Matrix",
+        "Clusters synchronised publishing patterns")
     show_chart(build_jaccard_similarity_heatmap(raw_df))
-    with st.expander("💡 Reporter's Field Notes: How to use these findings"):
+    with st.expander("💡 How to use these findings"):
         st.markdown(
-            "* **Dark Clusters:** Indicates synchronized publishing networks covering near-identical claim portfolios.")
+            "* **Dark Clusters:** Indicates synchronised publishing networks covering near-identical claim portfolios, could indicate an outlet relationship or coordinated behavior.\n\n"
+            "* **Light Clusters:** Represents loosely connected outlets with occasional overlap, generally indicating independent publishing behavior."
+        )
 
 
 def _build_scorecard_dataframe(filtered_exploded: pd.DataFrame) -> pd.DataFrame:
@@ -139,14 +145,15 @@ def _build_scorecard_dataframe(filtered_exploded: pd.DataFrame) -> pd.DataFrame:
 def _render_scorecard_section(filtered_exploded: pd.DataFrame):
     """Render summary table and table field notes."""
 
-    render_section_heading("Publisher Reliability Scorecard",
-                           "Monitored media outlets ranked by volume and flagged ratio.")
+    render_section_heading(
+        "Publisher Reliability Scorecard",
+        "Outlets ranked by volume and contradicted ratio")
 
     scorecard_df = _build_scorecard_dataframe(filtered_exploded)
 
     st.dataframe(
         scorecard_df.rename(columns={
-            "publisher": "Outlet / Publisher",
+            "publisher": "Outlet",
             "total_claims": "Total Claims Handled",
             "contradicted": "Disproven",
             "missing_context": "Missing Context",
@@ -157,7 +164,7 @@ def _render_scorecard_section(filtered_exploded: pd.DataFrame):
         use_container_width=True,
         hide_index=True
     )
-    with st.expander("💡 Reporter's Field Notes: How to use this table"):
+    with st.expander("💡 How to use this table"):
         st.markdown("""
         * **Background Check:** Sort by Flagged Rate (%) to evaluate unfamiliar sources.
         * **Tactic Column:** Reveals bias styles (e.g., *Missing Context* signals misleading framing).
@@ -171,7 +178,7 @@ def render():
 
     render_page_header(
         "Outlet & Source Network Intelligence",
-        "Audit media reliability, expose coordinated republishing networks, and pinpoint high-risk news sources."
+        "Audit media reliability, expose coordinated republishing networks, and pinpoint high-risk verification sources."
     )
 
     raw_df = fn.fetch_analytics_data()

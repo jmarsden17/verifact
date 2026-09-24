@@ -9,7 +9,7 @@ def render_sidebar_logo():
 
     logo_svg = f"""
     <div style="padding: 4px 0px 16px 0px;">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 80" width="100%">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 80" width="150%">
             <g transform="translate(0, 5)">
                 <!-- Document Container -->
                 <rect x="4" y="6" width="44" height="56" rx="6" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2.5"/>
@@ -22,14 +22,12 @@ def render_sidebar_logo():
                 <path d="M 33 46 L 36 49 L 43 42" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
             </g>
             <!-- Brand Text -->
-            <text x="64" y="32" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-weight="700" font-size="20" fill="{theme.COLOUR_PRIMARY}" letter-spacing="0.5">VERIFACT</text>
-            <text x="64" y="48" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-weight="700" font-size="10" fill="#0F172A" letter-spacing="1.2">FAST CLAIM AUDIT</text>
+            <text x="60" y="32" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-weight="700" font-size="26" fill="{theme.COLOUR_PRIMARY}" letter-spacing="0.5">VERIFACT</text>
+            <text x="64" y="48" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-weight="700" font-size="12" fill="#0F172A" letter-spacing="1.2">FAST CLAIM AUDIT</text>
         </svg>
     </div>
     """
     st.sidebar.markdown(logo_svg, unsafe_allow_html=True)
-
-# <text x="64" y="32" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-weight="700" font-size="15" fill="#0F172A" letter-spacing="0.5">VERIFACT</text>
 
 
 def render_system_status():
