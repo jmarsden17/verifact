@@ -26,9 +26,10 @@ def ssl_check(url: str, timeout: float = 5.0) -> bool | None:
     if not host:
         return None
 
-    port = parsed.port or 443
-
     try:
+        port = parsed.port or 443
+    except ValueError:
+        return False
         ctx = ssl.create_default_context()
         with socket.create_connection((host, port), timeout=timeout) as sock:
             with ctx.wrap_socket(sock, server_hostname=host):
