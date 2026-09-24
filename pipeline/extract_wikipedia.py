@@ -1,72 +1,80 @@
 """
-Extract information from the Wikipedia API
+A file that scrapes Wikipedia
 """
+
 import logging
 import requests
-import spacy
-import pytextrank
+from requests import get
+from bs4 import BeautifulSoup
 
 
-def load_spacy_model():
-    """Load spacy model"""
-    nlp = spacy.load("en_core_web_md")
-    logging.info("Successfully loaded the SpaCy model")
-    nlp.add_pipe("textrank")
-    return nlp
-
-
-def extract_keywords(nlp, claim: str) -> list[str]:
-    """Returns an extracted list of keywords from a claim"""
-    extracted_phrases = []
-    doc = nlp(claim)
-    for phrase in doc._.phrases[:10]:
-        extracted_phrases.append(phrase.text.capitalize())
-    return extracted_phrases
-
-
-def get_wiki_article(keyword: str) -> str:
-    """Returns the first paragraph of the wiki article based on key word"""
-    wiki_url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{keyword}"
+def get_article_titles(claim: str) -> list[str]:
+    """Returns a list of article titles from Wikipedia search results"""
+    wiki_url = "https://en.wikipedia.org/w/index.php?search="
     headers = {
         "User-Agent": "VeriFact"
     }
-    information = requests.get(wiki_url, headers=headers).json()
-    if 'extract' in information:
-        return information['extract']
-    else:
-        logging.warning("No information for %s", keyword.lower())
-        return None
+
+    res = get(wiki_url + claim, headers=headers, timeout=5)
+    soup = BeautifulSoup(res.content, features="html.parser")
+
+    # Target links specifically inside search result headings
+    search_heading_links = soup.select(".mw-search-result-heading a")
+
+    return [
+        a["title"]
+        for a in search_heading_links
+        if a.has_attr("title")
+    ]
 
 
-def get_all_relevant_information(nlp, keywords: list[str]) -> str:
-    """Returns all the relevant information as a paragraph"""
-    combined_text = ""
-    for keyword in keywords:
-        extract = get_wiki_article(keyword)
-        if extract is not None:
-            combined_text += extract + " "
-            logging.info(
-                "Successfully got information on %s from Wikipedia",
-                keyword.lower()
-            )
-    return combined_text
+def get_wiki_article(title: str) -> tuple:
+    """Returns the full wiki article based on keyword."""
+    wiki_url_api = "https://en.wikipedia.org/w/api.php"
+    params = {
+        "action": "query",
+        "format": "json",
+        "prop": "extracts|info",
+        "inprop": "url",
+        "explaintext": True,
+        "titles": title,
+        "redirects": 1,
+    }
+    headers = {
+        "User-Agent": "VeriFact"
+    }
+
+    try:
+        response = requests.get(wiki_url_api, headers=headers, params=params)
+        response.raise_for_status()
+        data = response.json()
+
+        pages = data.get("query", {}).get("pages", {})
+        for page_id, page_data in pages.items():
+            if page_id != "-1" and "extract" in page_data:
+                content = page_data["extract"]
+                url = page_data.get("fullurl")
+                return [content], [url]
+
+    except requests.RequestException as e:
+        logging.error("Failed to retrieve article for %s: %s", title, e)
+
+    logging.warning("No information found for %s", title.lower())
+    return [], []
 
 
-def handler(event=None, context=None):
-    """Main handler function for Lambda"""
-    logging.basicConfig(level=logging.INFO)
-    nlp = load_spacy_model()
+def wiki_search(claim: str) -> list[dict]:
+    """Returns scraped articles."""
 
-    # TODO: Change this to the claims
-    text = "The moon is made of blue cheese"
+    titles = get_article_titles(claim)
 
-    extract = extract_keywords(nlp, text)
-    logging.info(
-        "Successfully extracted %s key word(s)",
-        len(extract)
-    )
+    if len(titles) > 0:
+        title = titles[0]
+        return get_wiki_article(title)
 
-    get_all_relevant_information(nlp, extract)
-    logging.info("Extraction complete")
+    return [], []
 
-    # TODO: Add a return to pass data to the next Lambda
+
+if __name__ == "__main__":
+
+    print(wiki_search('moon is made of cheese.'))
