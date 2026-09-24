@@ -3,19 +3,15 @@
 """Tests for url_extract.py."""
 
 import logging
-
 import pytest
-
 from database_conns.url_extract import (
     extract_with_trafilatura,
     extract_with_firecrawl,
     extract_url,
 )
 
-
-# ---------------------------------------------------------------------------
 # extract_with_trafilatura
-# ---------------------------------------------------------------------------
+
 
 def test_extract_with_trafilatura_success(mocker, caplog):
     """A page that fetches and extracts returns the extracted text."""
@@ -44,8 +40,10 @@ def test_extract_with_trafilatura_success(mocker, caplog):
 ])
 def test_extract_with_trafilatura_no_result(mocker, fetch_return, extract_return):
     """No page or no extractable text returns None, without raising."""
-    mocker.patch("database_conns.url_extract.trafilatura.fetch_url", return_value=fetch_return)
-    mocker.patch("database_conns.url_extract.trafilatura.extract", return_value=extract_return)
+    mocker.patch("database_conns.url_extract.trafilatura.fetch_url",
+                 return_value=fetch_return)
+    mocker.patch("database_conns.url_extract.trafilatura.extract",
+                 return_value=extract_return)
 
     result = extract_with_trafilatura("https://www.test.co.uk")
 
@@ -59,7 +57,8 @@ def test_extract_with_trafilatura_no_result(mocker, fetch_return, extract_return
 def test_extract_with_trafilatura_error(mocker, caplog, failing_step):
     """An exception from either trafilatura call is caught and returns None."""
     caplog.set_level(logging.INFO)
-    mocker.patch("database_conns.url_extract.trafilatura.fetch_url", return_value="test fetch url")
+    mocker.patch("database_conns.url_extract.trafilatura.fetch_url",
+                 return_value="test fetch url")
     mocker.patch(f"database_conns.url_extract.trafilatura.{failing_step}",
                  side_effect=Exception("Trafilatura error"))
 
@@ -69,9 +68,7 @@ def test_extract_with_trafilatura_error(mocker, caplog, failing_step):
     assert "Failed to extract with Trafilatura" in caplog.text
 
 
-# ---------------------------------------------------------------------------
 # extract_with_firecrawl
-# ---------------------------------------------------------------------------
 
 def test_extract_with_firecrawl_success(mocker, caplog):
     """A scrape that returns markdown gives back that markdown."""
@@ -79,7 +76,8 @@ def test_extract_with_firecrawl_success(mocker, caplog):
     mock_app = mocker.Mock()
     mock_app.scrape.return_value = {"markdown": "test markdown"}
     mocker.patch("database_conns.url_extract.Firecrawl", return_value=mock_app)
-    mocker.patch.dict("database_conns.url_extract.environ", {"FIRECRAWL_API_KEY": "test_key"})
+    mocker.patch.dict("database_conns.url_extract.environ",
+                      {"FIRECRAWL_API_KEY": "test_key"})
 
     url = "https://www.test.co.uk"
 
@@ -105,7 +103,8 @@ def test_extract_with_firecrawl_no_result(mocker, caplog, scrape_return):
     mock_app = mocker.Mock()
     mock_app.scrape.return_value = scrape_return
     mocker.patch("database_conns.url_extract.Firecrawl", return_value=mock_app)
-    mocker.patch.dict("database_conns.url_extract.environ", {"FIRECRAWL_API_KEY": "test_key"})
+    mocker.patch.dict("database_conns.url_extract.environ",
+                      {"FIRECRAWL_API_KEY": "test_key"})
 
     result = extract_with_firecrawl("https://www.test.co.uk")
 
@@ -121,7 +120,8 @@ def test_extract_with_firecrawl_no_result(mocker, caplog, scrape_return):
 def test_extract_with_firecrawl_error(mocker, caplog, failing_call):
     """An exception creating the client or scraping is caught and returns None."""
     caplog.set_level(logging.INFO)
-    mocker.patch.dict("database_conns.url_extract.environ", {"FIRECRAWL_API_KEY": "test_key"})
+    mocker.patch.dict("database_conns.url_extract.environ",
+                      {"FIRECRAWL_API_KEY": "test_key"})
 
     if failing_call == "client":
         mocker.patch("database_conns.url_extract.Firecrawl",
@@ -129,7 +129,8 @@ def test_extract_with_firecrawl_error(mocker, caplog, failing_call):
     else:
         mock_app = mocker.Mock()
         mock_app.scrape.side_effect = Exception("Firecrawl error")
-        mocker.patch("database_conns.url_extract.Firecrawl", return_value=mock_app)
+        mocker.patch("database_conns.url_extract.Firecrawl",
+                     return_value=mock_app)
 
     result = extract_with_firecrawl("https://www.test.co.uk")
 
@@ -153,12 +154,7 @@ def test_extract_with_firecrawl_missing_api_key(mocker, caplog):
     assert "Failed to extract with FireCrawl" not in caplog.text
 
 
-
-# ---------------------------------------------------------------------------
 # extract_url
-# ---------------------------------------------------------------------------
-
-# the fallback behaviour
 
 def test_extract_url_uses_trafilatura_when_it_succeeds(mocker, caplog):
     """If trafilatura returns text, Firecrawl is never tried."""
@@ -177,7 +173,8 @@ def test_extract_url_uses_trafilatura_when_it_succeeds(mocker, caplog):
 def test_extract_url_falls_back_to_firecrawl(mocker, caplog):
     """If trafilatura returns nothing, Firecrawl is tried next."""
     caplog.set_level(logging.INFO)
-    mocker.patch("database_conns.url_extract.extract_with_trafilatura", return_value=None)
+    mocker.patch(
+        "database_conns.url_extract.extract_with_trafilatura", return_value=None)
     mocker.patch("database_conns.url_extract.extract_with_firecrawl",
                  return_value="from firecrawl")
 
@@ -189,8 +186,10 @@ def test_extract_url_falls_back_to_firecrawl(mocker, caplog):
 def test_extract_url_returns_none_when_both_fail(mocker, caplog):
     """If neither scraper returns anything, extract_url returns None and warns."""
     caplog.set_level(logging.INFO)
-    mocker.patch("database_conns.url_extract.extract_with_trafilatura", return_value=None)
-    mocker.patch("database_conns.url_extract.extract_with_firecrawl", return_value=None)
+    mocker.patch(
+        "database_conns.url_extract.extract_with_trafilatura", return_value=None)
+    mocker.patch(
+        "database_conns.url_extract.extract_with_firecrawl", return_value=None)
 
     result = extract_url("https://www.test.co.uk")
 

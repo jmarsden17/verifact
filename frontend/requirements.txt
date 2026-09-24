@@ -11,3 +11,4 @@ numpy
 trafilatura
 firecrawl-py
 scikit-learn
+trafilatura
