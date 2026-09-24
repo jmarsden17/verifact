@@ -75,7 +75,7 @@ def handler(event=None, context=None) -> dict:
 
     response = s3_client.get_object(
         Bucket='c25-disinformation-lambda',
-        Key='extract_claims.json'
+        Key=f'{folder_name}/extract_claims.json'
     )
 
     content_bytes = response['Body'].read()
