@@ -11,6 +11,5 @@ numpy
 trafilatura
 firecrawl-py
 scikit-learn
-trafilatura
 pytest-mock
 pytest-cov
