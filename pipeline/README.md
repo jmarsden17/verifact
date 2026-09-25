@@ -7,9 +7,8 @@ The pipeline takes text submitted by a user and turns it into verified claims st
 | Extract | `extract_claims/` | Pulls the individual claims out of the input, embeds them, and looks for similar claims already in the database |
 | Verify | `verify_claims/` | Searches one fact-checking outlet for each new claim using Firecrawl, and has an LLM compare the article with the claim |
 | Transform / Load | `transform_load/` | Combines the verdicts from each outlet, writes an overall summary and confidence score, cleans the data and inserts it into Postgres |
-| Helpers | `url_extract.py`, `link_verifier.py`, `query.py` | Get article text from a URL, check URLs, and a query stub. None of these are connected to the flow yet. |
 
-The orchestration is not in this repository. The plan is for a Step Function to call Extract, then run one Verify per outlet in parallel, then call Transform / Load. The Lambda code is written for that, but the state machine is not defined here.
+The orchestration is not in this repository. The plan is for a Step Function to call Extract, then run one Verify per outlet in parallel, then call Transform / Load. 
 
 ## Order of events
 
@@ -90,7 +89,7 @@ Input:
 }
 ```
 
-`source_name` should be one of Reuters Fact Check, BBC Verify, Full Fact or Wikipedia API, which are the values in the `outlet` table. Only the domain of `source_url` is used, to limit the search to that site. The URL above is only an example. The real URLs are supplied by whatever calls this Lambda and are not defined in this repo.
+`source_name` is one of Reuters Fact Check, BBC Verify, Full Fact or Wikipedia API, which are the values in the `outlet` table. Only the domain of `source_url` is used, to limit the search to that site. The URL above is only an example. The real URLs are supplied by the parallel step function flow.
 
 What it does for each claim:
 
@@ -148,16 +147,6 @@ Output: `{"statusCode": 200, "body": [ ...all records, including cached ones... 
 
 Environment: `OPENAI_API_KEY`, `OPENAI_BASE_URL`, and the database settings, which this Lambda reads as `DATABASE_NAME`, `DATABASE_IP`, `DATABASE_USERNAME`, `DATABASE_PASSWORD` and `DATABASE_PORT`. These are different from the names the Extract Lambda uses. It also needs network access to RDS, and the Terraform for this Lambda doesn't set that up yet.
 
-## Helper modules
-
-None of these are connected to the flow yet.
-
-| File | What it does |
-|---|---|
-| `url_extract.py` | `extract_url(url)` downloads and parses an article with newspaper3k and returns `{"title", "text"}`, or `{"error": ...}` if it fails. Meant to turn a submitted link into text for the Extract Lambda. |
-| `link_verifier.py` | `is_valid_url(url)` checks the URL format (http or https), `ssl_check(url)` opens a TLS connection to check the certificate, and `verify_url(url)` does both. Meant to check user-submitted links before scraping. |
-| `query.py` | A stub for a query Lambda. It connects to the database and returns `{}`, and the rest is a `TODO`. The similarity lookup currently lives in `extract_claims/db_connection.py`. |
-
 ## Tags
 
 There are 49 topic tags, 16 techniques, 4 verdicts and 4 outlets, all as fixed lists. They are used in three places: as `Literal` types in the Pydantic models (so the LLM can only return allowed values), in `transform.py` (for validation), and as seed data in `database/schema.sql`. The lists are copied into `extract_models.py`, `summary_models.py`, `verify_models.py` and `transform.py`, so change them together, or better, move them into one shared module.
@@ -199,23 +188,3 @@ cd pipeline
 pytest
 pytest --cov
 ```
-
-| File | Covers |
-|---|---|
-| `transform_load/test_load.py` | The `get_*_mapping` and `format_*_insert` functions in `load.py`, using a mocked cursor |
-| `test_transform.py` | The cleaning helpers and `transform()` in `transform_load/transform.py` |
-| `test_url_extract.py` | `extract_url` success and failure, with newspaper3k mocked |
-| `test_link_verifier.py` | URL and SSL checks. These make real network calls. |
-
-There are no tests yet for the Extract and Verify handlers, the LLM clients, `summary.py`, `collate_results.py` or the `handler_final` flow.
-
-## Known issues
-
-- Check the `skip_etl` hand-off end to end. `handler_final.py` filters rows with `data['skip_etl'] == False`, but `handler_verify_claim.py` doesn't copy `skip_etl` into the verdicts it returns. Run a real Extract, Verify, Transform / Load pass and confirm the flag reaches the load step.
-- `transform.clean_categorical_value` is called with `'VERDICTS'` but checks for `'VERDICT'`, so an invalid verdict becomes `None` instead of `Unclear / Not enough evidence`.
-- The error path in `handler_verify_claim.py` has a typo, `claim_embeddding` (three d's), so the embedding is lost for failed claims.
-- The verify prompt lists the verdicts as "Supported", "Contradicted", "Missing Context" and "Unclear", but the schema needs `Mixed / Missing Context` and `Unclear / Not enough evidence`. The schema wins, but the prompt should match it.
-- `source` inserts have no duplicate check, so the same URL can be stored more than once.
-- The environment variable names differ between Lambdas (`DB_*` and `DATABASE_*`, `API_KEY` and `FIRECRAWL_API_KEY`).
-- Verify only asks Firecrawl for the top search result per outlet, so a relevant fact-check ranked second is missed.
-- `pipeline/requirements.txt` (for dev and tests) and each Lambda's own `requirements.txt` are kept separately and differ, for example `firecrawl-py` and `firecrawl`.
