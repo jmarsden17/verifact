@@ -68,33 +68,7 @@ resource "aws_sfn_state_machine" "c25_disinformation" {
           "JitterStrategy": "FULL"
         }
       ],
-      "Next": "Split"
-    },
-    "Split": {
-      "Type": "Pass",
-      "Assign": {
-        "skipped": "{% $states.input.body.skipped %}"
-      },
-      "Output": {
-        "statusCode": 200,
-        "body": "{% $states.input.body.to_process %}"
-      },
-      "Next": "Choice"
-    },
-    "Choice": {
-      "Type": "Choice",
-      "Choices": [
-        {
-          "Condition": "{% $count($states.input.body) = 0 %}",
-          "Next": "Pass"
-        }
-      ],
-      "Default": "Parallel"
-    },
-    "Pass": {
-      "Type": "Pass",
-      "Output": "{% [] %}",
-      "Next": "Transform/Load"
+      "Next": "Parallel"
     },
     "Parallel": {
       "Type": "Parallel",
@@ -107,7 +81,7 @@ resource "aws_sfn_state_machine" "c25_disinformation" {
               "Resource": "arn:aws:states:::lambda:invoke",
               "Arguments": {
                 "FunctionName": "arn:aws:lambda:eu-west-2:129033205317:function:c25_disinformation_claim_verification:$LATEST",
-                "Payload": "{% $merge([$states.input, {'source_url': 'fullfact.org'},{'source_name': 'Full Fact'}]) %}"
+                "Payload": "{% $merge([$states.input, {'source_url': 'https://fullfact.org/search'},{'source_name': 'Full Fact'}]) %}"
               },
               "Output": "{% $states.result.Payload %}",
               "Retry": [
@@ -136,7 +110,7 @@ resource "aws_sfn_state_machine" "c25_disinformation" {
               "Resource": "arn:aws:states:::lambda:invoke",
               "Arguments": {
                 "FunctionName": "arn:aws:lambda:eu-west-2:129033205317:function:c25_disinformation_claim_verification:$LATEST",
-                "Payload": "{% $merge([$states.input, {'source_url': 'bbc.co.uk/news/articles'},{'source_name': 'BBC Verify'}]) %}"
+                "Payload": "{% $merge([$states.input, {'source_url': 'https://www.bbc.co.uk/search?q='},{'source_name': 'BBC Verify'}]) %}"
               },
               "Output": "{% $states.result.Payload %}",
               "Retry": [
@@ -165,9 +139,38 @@ resource "aws_sfn_state_machine" "c25_disinformation" {
               "Resource": "arn:aws:states:::lambda:invoke",
               "Arguments": {
                 "FunctionName": "arn:aws:lambda:eu-west-2:129033205317:function:c25_disinformation_claim_verification:$LATEST",
-                "Payload": "{% $merge([$states.input, {'source_url': 'reuters.com/fact-check'},{'source_name': 'Reuters Fact Check'}]) %}"
+                "Payload": "{% $merge([$states.input, {'source_url': 'https://www.reuters.com/site-search/?query='},{'source_name': 'Reuters Fact Check'}]) %}"
               },
               "Output": "{% $states.result.Payload %}",
+              "Retry": [
+                {
+                  "ErrorEquals": [
+                    "Lambda.ServiceException",
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException",
+                    "Lambda.TooManyRequestsException"
+                  ],
+                  "IntervalSeconds": 1,
+                  "MaxAttempts": 3,
+                  "BackoffRate": 2,
+                  "JitterStrategy": "FULL"
+                }
+              ],
+              "End": true
+            }
+          }
+        },
+        {
+          "StartAt": "Wikipedia API",
+          "States": {
+            "Wikipedia API": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "Output": "{% $states.result.Payload %}",
+              "Arguments": {
+                "FunctionName": "arn:aws:lambda:eu-west-2:129033205317:function:c25_disinformation_claim_verification:$LATEST",
+                "Payload": "{% $merge([$states.input, {'source_url':'https://en.wikipedia.org/w/index.php?search='},{'source_name': 'Wikipedia API'}]) %}"
+              },
               "Retry": [
                 {
                   "ErrorEquals": [
@@ -194,7 +197,7 @@ resource "aws_sfn_state_machine" "c25_disinformation" {
       "Resource": "arn:aws:states:::lambda:invoke",
       "Arguments": {
         "FunctionName": "arn:aws:lambda:eu-west-2:129033205317:function:c25_disinformation_transform_load:$LATEST",
-        "Payload": "{% { 'results': $states.input, 'skipped': $skipped } %}"
+        "Payload": "{% { 'results': $states.input } %}"
       },
       "Output": "{% $states.result.Payload %}",
       "Retry": [
