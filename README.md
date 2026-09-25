@@ -9,7 +9,6 @@ A tool for journalists to check claims against trusted fact-checking sources. Yo
 
 - [The problem](#the-problem)
 - [What it does](#what-it-does)
-- [Project status](#project-status)
 - [Architecture](#architecture)
 - [Trusted sources](#trusted-sources)
 - [Tech stack](#tech-stack)
@@ -18,7 +17,7 @@ A tool for journalists to check claims against trusted fact-checking sources. Yo
 - [Environment variables](#environment-variables)
 - [Testing and code quality](#testing-and-code-quality)
 - [Security](#security)
-- [Known issues and next steps](#known-issues-and-next-steps)
+- [Next steps](#next-steps)
 - [Team](#team)
 
 Each folder has its own README: [database](database/README.md), [frontend](frontend/README.md), [pipeline](pipeline/README.md), [terraform](terraform/README.md).
