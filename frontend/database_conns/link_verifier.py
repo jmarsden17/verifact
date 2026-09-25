@@ -29,7 +29,7 @@ def ssl_check(url: str, timeout: float = 5.0) -> bool | None:
     try:
         port = parsed.port or 443
     except ValueError:
-        return None
+        return False
 
     try:
         ctx = ssl.create_default_context()
