@@ -1,6 +1,5 @@
-"""
-Extracts the content of the URL a user submits as a claim.
-"""
+"""Extracts the content of the URL a user submits as a claim."""
+
 from os import environ
 import logging
 from dotenv import load_dotenv
@@ -13,11 +12,12 @@ TRAFILATURA_TIMEOUT_SECONDS = 10
 
 
 def extract_with_trafilatura(url: str) -> str | None:
-    """Scrapes web content with trafilatura"""
+    """Scrapes web content with trafilatura."""
+
     try:
         config = use_config()
         config.set("DEFAULT", "DOWNLOAD_TIMEOUT",
-                    str(TRAFILATURA_TIMEOUT_SECONDS))
+                   str(TRAFILATURA_TIMEOUT_SECONDS))
         downloaded = trafilatura.fetch_url(url, config=config)
         result = trafilatura.extract(downloaded)
         if result:
@@ -29,7 +29,8 @@ def extract_with_trafilatura(url: str) -> str | None:
 
 
 def extract_with_firecrawl(url: str) -> str | None:
-    """Scrapes web content using FireCrawl"""
+    """Scrapes web content using FireCrawl."""
+
     api_key = environ.get('FIRECRAWL_API_KEY')
     if not api_key:
         logging.error(
@@ -50,6 +51,7 @@ def extract_with_firecrawl(url: str) -> str | None:
 
 def extract_url(url: str) -> str | None:
     """Extracts information from URL."""
+
     logging.info("Attempt extraction with Trafilatura")
     extraction = extract_with_trafilatura(url)
     if extraction:
@@ -69,7 +71,6 @@ if __name__ == "__main__":
     load_dotenv()
     logging.basicConfig(level=logging.INFO)
 
-    # TODO: Change this when linked to the front-end
     web = 'https://www.bbc.co.uk/news/articles/c6y0z4gv0le4o'
 
     extract_url(web)
