@@ -236,8 +236,14 @@ def build_tfidf_keyword_chart(df: pd.DataFrame):
             y="Term",
             orientation="h",
             color="TF-IDF Score",
-            color_continuous_scale="Reds",
+            color_continuous_scale="Blues",
             title="High-Risk Keywords Correlated with Disproven Claims (TF-IDF)"
+        )
+
+        # Outlines every bar in black
+        fig.update_traces(
+            marker_line_color="black",
+            marker_line_width=1.5
         )
 
         return apply_base_layout(
