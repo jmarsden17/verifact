@@ -25,7 +25,7 @@ Each folder has its own README: [database](database/README.md), [frontend](front
 
 ## The problem
 
-Journalists and desk editors have to verify claims quickly, usually under deadline. Checking a claim by hand means searching several fact-checking outlets (BBC Verify, Reuters and others), which takes roughly 15 to 45 minutes per claim. During breaking news there is a real risk of publishing something that is missing context or wrongly attributed. Most existing fact-check tools are built for researchers and need an open dataset or API to be queried.
+Journalists and desk editors have to verify claims quickly, usually under deadline. Checking a claim by hand means searching several fact-checking outlets (BBC Verify, Reuters and others), which takes roughly 15 to 45 minutes per claim. When news first breaks there is a real risk of publishing something that is missing context or wrongly attributed. Most existing fact-check tools are built for researchers and need an open dataset or API to be queried.
 
 This project puts the checking in one place and gives a structured answer. Because results are stored, colleagues in the same newsroom don't repeat the same search.
 
@@ -48,30 +48,12 @@ Each claim gets one of four verdicts:
 
 Claims are also given a topic tag (for example Politics UK or Healthcare) and a disinformation technique (for example Cherry Picking, Outdated Content or None).
 
-The dashboard has four views: Claim Verification, Top Disproven Claims, Verification Logs and Outlet Analytics.
+The dashboard has four views: Claim Verification, Top Disproven Claims, Verification Logs, Outlet Analysis and Claim Analysis.
 
-## Project status
-
-The project is still in progress. This is what exists in the code now.
-
-| Area | Status |
-|---|---|
-| Extract Lambda (claim extraction, embeddings, similarity lookup) | Done |
-| Verify Lambda (Firecrawl search and LLM comparison, one outlet per run) | Done |
-| Transform / load Lambda (collate, summarise, clean, insert) | Done, with unit tests |
-| Postgres schema with pgvector and seed data | Done |
-| Streamlit dashboard UI (4 views, charts, theme) | Done |
-| Dashboard history and analytics reading from RDS | Done |
-| Claim Verification view calling the pipeline | Not done, it returns mock data |
-| Orchestration (run verify Lambdas in parallel, then collate) | Not in this repo |
-| URL input (`url_extract.py`) and URL checks (`link_verifier.py`) | Written but not connected |
-| Query Lambda (`pipeline/query.py`) | Stub |
-| Terraform for RDS, ECR, Lambdas and the ECS dashboard | Written, Lambda image URIs still empty |
-| RSS ingestion and topic monitoring | Not started |
 
 ## Architecture
 
-<!-- Insert rchitecture diagram here -->
+![Architecture Diagram](Disinformation.png)
 
 
 How the parts fit together:
@@ -81,8 +63,6 @@ How the parts fit together:
 3. New claims go to the verify Lambda. There is one run per outlet (Reuters Fact Check, BBC Verify, Full Fact, Wikipedia) and the runs are meant to happen in parallel.
 4. The transform / load Lambda groups the verdicts by claim, writes an overall summary and confidence score, cleans the data and inserts it into PostgreSQL.
 5. The dashboard reads from PostgreSQL to show history, disproven claims and outlet analytics.
-
-The original proposal described a Step Function running this whole flow. That state machine is not in this repository yet.
 
 Some of the reasons for the main choices, from the proposal:
 
@@ -221,12 +201,6 @@ See [terraform/README.md](terraform/README.md).
 | `DATABASE_IP`, `DATABASE_PORT`, `DATABASE_NAME`, `DATABASE_USERNAME`, `DATABASE_PASSWORD` | transform_load (`load.py`), `query.py` | Postgres connection, with different names |
 | `DASHBOARD_PASSWORD` | frontend | Dashboard login password |
 
-Some things to watch:
-
-- The extract Lambda and the frontend use `DB_*`, while `load.py` and `query.py` use `DATABASE_*`.
-- The verify Lambda reads the Firecrawl key from `API_KEY`, but Terraform sets `FIRECRAWL_API_KEY`.
-- The model names (`gpt-5.6-luna` for chat and `text-embedding-3-small` for embeddings) are hard-coded in `extract_llm.py`, `verify_llm.py`, `summary.py` and `handler_extract_claims.py`. The embedding size of 1536 has to match `VECTOR(1536)` in the schema.
-
 `.env` files and `*.tfvars` are in `.gitignore`. Don't commit them.
 
 ## Testing and code quality
@@ -254,39 +228,14 @@ Already in place:
 - `.gitignore` covers `.env*`, `*.tfvars`, Terraform state and keys.
 - Each Lambda and the ECS service has its own IAM role. The Lambda roles only allow CloudWatch Logs, plus VPC access for the extract Lambda.
 - LLM calls use Pydantic structured outputs with fixed lists of allowed values. Scraped text goes in the user message, not the system message.
-- `link_verifier.py` checks URLs are http or https and checks the TLS certificate. It isn't used on user input yet.
 
-
-## Known issues and next steps
-
-Missing functionality:
-
-1. Connect the Claim Verification view to the pipeline. `verify_claim()` in `frontend/database_conns/fetch_data.py` returns hard-coded results, and the confidence gauge and "semantic match" figures in the UI are placeholders.
-2. Add the orchestration: call extract, run one verify Lambda per outlet in parallel, then call transform / load.
-3. Check the data passed between the Lambdas end to end. `handler_final.py` filters on `data['skip_etl']`, but `handler_verify_claim.py` doesn't include `skip_etl` in what it returns.
-4. Connect `url_extract.py` and `link_verifier.py` so users can submit links.
-5. Finish or remove `pipeline/query.py`.
-
-Bugs spotted:
-
-- `get_filtered_logs()` filters on `tg.tags`, but other queries use `tg.tag`. The column is `tag` in `schema.sql` and `tags` in the ERD, so one of them is wrong. Pick one name and update `schema.sql`, `load.py` and the queries to match.
-- The UI uses the verdicts `Missing Context` and `Unclear`, but the database has `Mixed / Missing Context` and `Unclear / Not enough evidence`. The verdict filter, the Top Disproven Claims query and the chart colours don't match those two.
-- In `transform.py` the verdict fallback never runs (`'VERDICTS'` is passed but `'VERDICT'` is checked), so an unknown verdict becomes `None`.
-- `handler_verify_claim.py` has a typo in its error path: `claim_embeddding`.
-- `source` rows have no duplicate check, so the same URL can be stored more than once.
-
-Cleanup:
-
-- The topic tag and technique lists are copied into `extract_models.py`, `summary_models.py`, `verify_models.py`, `transform.py` and `schema.sql`. They should live in one place.
-- Make the environment variable names consistent.
-- Rewrite the frontend tests and add tests for the extract and verify handlers.
-- Terraform: fill in the Lambda image URIs, add ECR repos for the extract and transform / load images, give transform / load its database variables and VPC access, and remove or use the DynamoDB table.
+## Next steps
 
 Extension ideas from the brief:
 
 - Monitoring mode, where users define a topic or keyword and the system regularly ingests related articles and extracts candidate claims.
 - Image or screenshot input.
-- More verification sources, and a lower tier LLM for a free plan.
+- More verification sources.
 
 ## Team
 

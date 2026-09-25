@@ -13,7 +13,7 @@ This folder defines the AWS infrastructure for the Disinformation Verifier: the 
 | `transform_load_lambda.tf` | IAM role and policy, and the `c25_disinformation_transform_load` Lambda (512 MB, 120 s). Environment: OpenAI variables only |
 | `frontend.tf` | ECR repo for the dashboard, CloudWatch log group (7 day retention), execution and task IAM roles, a Fargate task definition (0.5 vCPU, 1 GB, port 8501, health check on `/_stcore/health`), a security group, and an ECS service with a public IP |
 | `ecr.tf` | ECR repositories `c25-disinformation-ecr-dashboard`, `c25-disinformation-ecr-query` and `c25-disinformation-ecr-claim-verification`, with image scanning on push |
-| `dynamodb.tf` | An on-demand DynamoDB table `c25-disinformation-dynamo` (hash key `tags`, range key `timestamp`). It is left over from the original design and nothing in the code uses it |
+| `step_function.tf` | Step Function utilised in the ETL pipeline. |
 | `variables.tf` | The input variables (below) |
 
 The Lambda IAM roles only allow CloudWatch Logs. The extract Lambda also gets `AWSLambdaVPCAccessExecutionRole`.
@@ -127,12 +127,3 @@ Things to fix before this is used with real data:
 - The provider uses long-lived access keys passed in as variables. An assumed role or OIDC from Terraform Cloud would be better.
 - `skip_final_snapshot = true` means `terraform destroy` deletes the database with no backup.
 - The Lambda roles only write logs, which is a good starting point to keep.
-
-## Known gaps
-
-- The Lambda `image_uri` values are empty.
-- Only the verify Lambda has a matching ECR repo in `ecr.tf` (`claim-verification`). There are none for the extract or transform / load images. There is also an `ecr-query` repo with no Lambda (the query Lambda is still a stub), and two dashboard repos (one in `ecr.tf` and one in `frontend.tf`).
-- The transform / load Lambda has no database variables (`DATABASE_*`) and no VPC config, but `load.py` needs both to reach RDS.
-- The verify Lambda gets `FIRECRAWL_API_KEY`, but the code reads `API_KEY`.
-- The DynamoDB table is not used.
-- `vpc_id` is declared but never referenced.
