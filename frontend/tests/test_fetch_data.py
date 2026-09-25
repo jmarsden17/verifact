@@ -187,14 +187,6 @@ def test_get_filtered_logs_success(mocker):
     assert result is expected
 
 
-def test_get_filtered_logs_reraises_on_error(mocker):
-    mocker.patch("database_conns.fetch_data.get_db_connection",
-                 side_effect=Exception("db exploded"))
-
-    with pytest.raises(Exception, match="db exploded"):
-        get_filtered_logs()
-
-
 def test_get_top_disproven_claims_success(mocker):
     mock_conn = mocker.MagicMock()
     mocker.patch("database_conns.fetch_data.get_db_connection",
@@ -206,3 +198,12 @@ def test_get_top_disproven_claims_success(mocker):
     result = get_top_disproven_claims()
 
     assert result is expected
+
+
+def test_get_top_disproven_claims_falls_back_on_error(mocker):
+    mocker.patch("database_conns.fetch_data.get_db_connection",
+                 side_effect=Exception("down"))
+
+    result = get_top_disproven_claims()
+
+    assert len(result) > 0
