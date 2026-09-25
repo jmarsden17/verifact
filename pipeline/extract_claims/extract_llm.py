@@ -28,7 +28,7 @@ def get_claims_from_user(text: str) -> dict:
 
     base_url = os.environ["OPENAI_BASE_URL"]
 
-    if check_openai_connection() == False:
+    if check_openai_connection() is False:
         logger.error("OpenAI connection check failed")
         return False
     client = OpenAI(
@@ -65,6 +65,7 @@ def get_claims_from_user(text: str) -> dict:
 
 
 def check_openai_connection() -> bool:
+    """Returns if openai connection has been established"""
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
     # Layer 3: authenticated call

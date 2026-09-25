@@ -5,21 +5,25 @@ from pydantic import BaseModel, Field
 
 
 TOPIC_TAGS = [
-    "Politics UK", "Politics USA", "Politics International", "Elections US", "Elections UK", "Elections International", "War/Conflict",
-    "Military", "Terrorism", "Abortion", "Immigration", "Economy Finance", "Trade Tariffs", "Healthcare", "Public Health Pandemic", "Vaccines",
-    "Medicine Treatment", "Science General", "Climate Change", "Environment", "Energy", "Technology", "Artificial Intelligence", "Social Media Platforms",
-    "Cybersecurity", "Education", "Religion", "Race Ethnicity", "Gender Sexuality", "Crime Law Enforcement", "Judiciary Legal",
-    "Government Corruption", "Media Journalism", "Celebrity Entertainment", "Sports", "Natural Disaster", "Conspiracy Theory",
-    "History Revisionism", "Business Corporate", "Labor Employment", "Foreign Interference", "Public Figure Statement",
-    "Europe", "Asia", "Africa", "Americas", "Middle East", "Oceania", "Other"
+    "Politics UK", "Politics USA", "Politics International", "Elections US", "Elections UK",
+    "Elections International", "War/Conflict", "Military", "Terrorism", "Abortion", "Immigration",
+    "Economy Finance", "Trade Tariffs", "Healthcare", "Public Health Pandemic", "Vaccines",
+    "Medicine Treatment", "Science General", "Climate Change", "Environment", "Energy",
+    "Technology", "Artificial Intelligence", "Social Media Platforms", "Cybersecurity", "Education",
+    "Religion", "Race Ethnicity", "Gender Sexuality", "Crime Law Enforcement", "Judiciary Legal",
+    "Government Corruption", "Media Journalism", "Celebrity Entertainment", "Sports",
+    "Natural Disaster", "Conspiracy Theory", "History Revisionism", "Business Corporate",
+    "Labor Employment", "Foreign Interference", "Public Figure Statement", "Europe", "Asia",
+    "Africa", "Americas", "Middle East", "Oceania", "Other"
 ]
 
 TopicTag = Literal[tuple(TOPIC_TAGS)]
 
 TECHNIQUE_TAGS = [
-    "AI Generated Content", "Manipulated Media", "Deepfake", "Misleading Context", "Miscaptioned", "Satire Mistaken As Real",
-    "Statistical Distortion", "Cherry Picking", "Outdated Content", "Unverified Claim", "Opinion Stated As Fact", "Pseudoscience",
-    "Conspiracy Narrative", "Astroturfing", "Bot Amplification", "None"
+    "AI Generated Content", "Manipulated Media", "Deepfake", "Misleading Context", "Miscaptioned",
+    "Satire Mistaken As Real", "Statistical Distortion", "Cherry Picking", "Outdated Content",
+    "Unverified Claim", "Opinion Stated As Fact", "Pseudoscience", "Conspiracy Narrative",
+    "Astroturfing", "Bot Amplification", "None"
 ]
 
 TechniqueTag = Literal[tuple(TECHNIQUE_TAGS)]
