@@ -1,7 +1,7 @@
 """Holds functions for calculating embedding vectors using OpenAI's API."""
-from dotenv import load_dotenv
 import os
 import logging
+from dotenv import load_dotenv
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from pgvector.psycopg2 import register_vector

@@ -11,7 +11,10 @@ logger = logging.getLogger(__name__)
 
 
 def generate_summary(grouped_claims: list[dict]) -> SummaryResult:
-    """Generate a summary of multiple source claims and their corresponding verdicts using OpenAI's API."""
+    """
+    Generate a summary of multiple source claims and their corresponding 
+    verdicts using OpenAI's API.
+    """
     load_dotenv()
     client = OpenAI(api_key=os.environ["OPENAI_API_KEY"],
                     base_url=os.environ["OPENAI_BASE_URL"])

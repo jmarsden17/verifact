@@ -68,3 +68,6 @@ logs/
 # Misc
 *.bak
 *.tmp
+
+seed.py
+seed.sql

@@ -43,7 +43,12 @@ def get_wiki_article(title: str) -> tuple:
     }
 
     try:
-        response = requests.get(wiki_url_api, headers=headers, params=params)
+        response = requests.get(
+            wiki_url_api,
+            headers=headers,
+            params=params,
+            timeout=100
+        )
         response.raise_for_status()
         data = response.json()
 

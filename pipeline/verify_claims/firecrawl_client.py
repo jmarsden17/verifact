@@ -1,10 +1,9 @@
 """Firecrawl client for extracting articles from specific sites."""
 
-import logging
-from dotenv import load_dotenv
 from time import sleep
 import os
 from urllib.parse import urlparse
+from dotenv import load_dotenv
 from firecrawl import Firecrawl
 from bs4 import BeautifulSoup
 from requests import get

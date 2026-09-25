@@ -5,14 +5,24 @@ from summary import generate_summary
 def combine_main(event):
     """Handler to collate verification results from parallel Lambdas."""
 
-    # Returns dict where keys are claim texts and values are lists of verdicts from different sources.
+    # Returns dict where keys are claim texts
+    # and values are lists of verdicts from different sources.
     results = aggregate_verdicts(event)["body"]
 
     # Returns dict where keys are claim texts and values are the corresponding summaries.
     summaries = generate_summary(results)
 
     combined = {}
-    # Outputs a dict in the form: {claim: {"individual_verdicts": [{},{},{}], "summary": {}}, claim2: {"individual_verdicts": [...], "summary": ...}}
+    # Outputs a dict in the form: {
+    #     claim: {
+    #         "individual_verdicts": [{},{},{}],
+    #         "summary": {}
+    #     },
+    #     claim2: {
+    #         "individual_verdicts": [...],
+    #         "summary": ...
+    #     }
+    # }
     for claim_text, verdicts in results.items():
         combined[claim_text] = {
             "verdicts": verdicts,
