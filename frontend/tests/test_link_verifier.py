@@ -17,8 +17,23 @@ def test_is_valid_url():
     assert is_valid_url("example") is False
 
 
-def test_ssl_check():
+def test_ssl_check_valid_certificate_is_true(mocker):
+    mock_sock = mocker.MagicMock()
+    mock_sock.__enter__.return_value = mock_sock
+    mocker.patch(
+        "database_conns.link_verifier.socket.create_connection",
+        return_value=mock_sock,
+    )
+    mock_ctx = mocker.MagicMock()
+    mock_ctx.wrap_socket.return_value.__enter__.return_value = mocker.MagicMock()
+    mocker.patch(
+        "database_conns.link_verifier.ssl.create_default_context",
+        return_value=mock_ctx,
+    )
     assert ssl_check("https://www.example.com") is True
+
+
+def test_ssl_check_non_https_is_not_checked():
     assert ssl_check("http://www.example.com") is None
 
 
@@ -63,9 +78,18 @@ def test_ssl_check_uses_the_urls_own_port(mocker):
     assert mock_create_connection.call_args.args[0] == ("www.test.co.uk", 8443)
 
 
-def test_verify_url():
+def test_verify_url_accepts_a_valid_https_url(mocker):
+    mocker.patch("database_conns.link_verifier.ssl_check", return_value=True)
     assert verify_url("https://www.example.com") is True
+
+
+def test_verify_url_accepts_http_without_checking_ssl():
+    # http has no certificate to check; ssl_check itself would return None
+    # for a non-https scheme, so nothing needs mocking here.
     assert verify_url("http://www.example.com") is True
+
+
+def test_verify_url_rejects_malformed_urls():
     assert verify_url("ftp://example.com") is False
     assert verify_url("www.example.com") is False
     assert verify_url("example") is False
