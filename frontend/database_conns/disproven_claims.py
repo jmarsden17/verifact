@@ -1,7 +1,6 @@
 """Data logic for the Latest Disproven Claims feed."""
 
 import pandas as pd
-
 from .connection import get_db_connection
 
 SORT_ORDERS = {

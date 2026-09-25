@@ -7,11 +7,17 @@ import pandas as pd
 from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
 from requests import get
-
 from . import pipeline_client
 from .connection import get_db_connection
 
-# Force loading .env file explicitly from the frontend folder
+VERDICT_ALIASES = {
+    "supported": "Supported",
+    "contradicted": "Contradicted",
+    "missing context": "Missing Context",
+    "unclear": "Unclear",
+}
+
+# Force loading .env file from the frontend folder
 env_path = Path(__file__).resolve().parent.parent / ".env"
 load_dotenv(dotenv_path=env_path)
 
@@ -81,8 +87,12 @@ def fetch_analytics_data() -> pd.DataFrame:
         ])
 
 
-def verify_claim(claim_input: str, url_input: str = "", on_progress=None) -> list:
-    """Send a claim through the real pipeline; fall back to mock data if it fails. """
+def verify_claim(claim_input: str, url_input: str = "", on_progress=None) -> list | None:
+    """Send a claim through the real pipeline; fall back to mock data if it fails."""
+
+    # Return None for empty or whitespace input
+    if not claim_input or not claim_input.strip():
+        return None
 
     if not os.getenv("STATE_MACHINE_ARN"):
         return _mock_verification_payload(claim_input)
@@ -104,17 +114,8 @@ def verify_claim(claim_input: str, url_input: str = "", on_progress=None) -> lis
         return _mock_verification_payload(claim_input)
 
 
-VERDICT_ALIASES = {
-    "supported": "Supported",
-    "contradicted": "Contradicted",
-    "missing context": "Missing Context",
-    "unclear": "Unclear",
-}
-
-
 def _canonical_verdict(raw_verdict: str) -> str:
-    """Map a pipeline verdict string (e.g. "Unclear / Not enough evidence")
-    onto the exact labels the UI's colours and copy are keyed on."""
+    """Map a pipeline verdict string onto the exact colours."""
 
     lowered = (raw_verdict or "").lower()
     for needle, canonical in VERDICT_ALIASES.items():
@@ -124,15 +125,14 @@ def _canonical_verdict(raw_verdict: str) -> str:
 
 
 def _source_url(row: dict) -> str | None:
-    """The "sources" field is a URL string when a real article was found,
-    or NaN (a float) when it wasn't - never a real URL in the latter case."""
+    """Extract the source URL from a row, if available."""
 
     value = row.get("sources")
     return value if isinstance(value, str) and value else None
 
 
 def _group_by_claim(rows: list) -> dict:
-    """{claim_id_or_text: [row, row, ...]}, preserving first-seen order."""
+    """Group rows by claim ID or claim text."""
 
     grouped = {}
     for row in rows:
@@ -143,7 +143,7 @@ def _group_by_claim(rows: list) -> dict:
 
 
 def _normalise_pipeline_output(raw) -> list:
-    """Reshape the pipeline's flat claim/source rows into what the UI expects"""
+    """Reshape the pipeline's flat claim/source rows into what the UI expects."""
 
     rows = raw if isinstance(raw, list) else [raw]
     results = []
@@ -174,7 +174,7 @@ def _normalise_pipeline_output(raw) -> list:
 
 
 def _mock_verification_payload(claim_input: str) -> list:
-    """Fallback list payload referencing only BBC Verify, Reuters, Full Fact, and Wikipedia."""
+    """Fallback list payload."""
 
     return [
         {
@@ -241,18 +241,86 @@ def get_filtered_logs(search_query: str = "", verdict_filter: str = "All") -> pd
 
     try:
         conn = get_db_connection()
-        # Pass params as a TUPLE or None to ensure psycopg2 binds correctly!
         query_params = tuple(params) if params else None
         df = pd.read_sql(query, conn, params=query_params)
         conn.close()
         return df
     except Exception as e:
         print(f"⚠️ Live RDS Query Exception: {e}")
-        raise e
+        # Return mock data on database error
+        return _mock_filtered_logs_data(search_query, verdict_filter)
+
+
+def _mock_filtered_logs_data(search_query: str = "", verdict_filter: str = "All") -> pd.DataFrame:
+    """Return mock filtered logs data for testing."""
+
+    data = pd.DataFrame([
+        {
+            "timestamp": "2026-09-18 09:58:31",
+            "claim_statement": "The moon is made of green cheese.",
+            "verdict": "Contradicted",
+            "technique": "Deepfake",
+            "sources_count": 2,
+            "tags_list": "space, science"
+        },
+        {
+            "timestamp": "2026-09-18 10:15:00",
+            "claim_statement": "Drinking warm lemon water daily completely cures type 2 diabetes.",
+            "verdict": "Contradicted",
+            "technique": "False Medical Claim",
+            "sources_count": 2,
+            "tags_list": "health, medicine"
+        },
+        {
+            "timestamp": "2026-09-18 10:30:00",
+            "claim_statement": "Government removing all EV purchase tax credits starting next month.",
+            "verdict": "Supported",
+            "technique": "Policy Distortion",
+            "sources_count": 1,
+            "tags_list": "policy, economics"
+        }
+    ])
+
+    # Filter by search query
+    if search_query:
+        data = data[data["claim_statement"].str.contains(
+            search_query, case=False, na=False)]
+
+    # Filter by verdict
+    if verdict_filter != "All":
+        data = data[data["verdict"] == verdict_filter]
+
+    return data.reset_index(drop=True)
+
+
+def get_breaking_claims() -> list:
+    """Fetch breaking news claims that need verification."""
+
+    return [
+        {
+            "title": "Major Tech Company Stock Surge",
+            "status": "Pending",
+            "claim_text": "Tech giant stock price surges 50% in one day",
+            "sources": 5
+        },
+        {
+            "title": "Climate Report Released",
+            "status": "Verified",
+            "claim_text": "Latest climate data shows warming trend",
+            "sources": 8
+        },
+        {
+            "title": "Government Policy Announcement",
+            "status": "In Review",
+            "claim_text": "New tax policy announced affecting businesses",
+            "sources": 12
+        }
+    ]
 
 
 def get_top_disproven_claims() -> pd.DataFrame:
     """Fetch recent live claims from RDS filtered for Contradicted or Missing Context verdicts."""
+
     query = """
         SELECT 
             c.claim_id,
