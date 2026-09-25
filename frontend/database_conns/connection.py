@@ -3,7 +3,6 @@
 import os
 from pathlib import Path
 import psycopg2
-from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
 
 # Force loading .env file from the frontend folder

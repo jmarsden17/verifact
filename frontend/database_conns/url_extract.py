@@ -64,13 +64,3 @@ def extract_url(url: str) -> str | None:
 
     logging.warning('Error: Cannot extract content with any scraper')
     return None
-
-
-if __name__ == "__main__":
-
-    load_dotenv()
-    logging.basicConfig(level=logging.INFO)
-
-    web = 'https://www.bbc.co.uk/news/articles/c6y0z4gv0le4o'
-
-    extract_url(web)
