@@ -1,10 +1,13 @@
 """Create a summary of multiple source claims and their corresponding verdicts."""
 
+import logging
 import os
 
 from openai import OpenAI
 from dotenv import load_dotenv
 from summary_models import SummaryResult
+
+logger = logging.getLogger(__name__)
 
 
 def generate_summary(grouped_claims: list[dict]) -> SummaryResult:
@@ -14,8 +17,11 @@ def generate_summary(grouped_claims: list[dict]) -> SummaryResult:
                     base_url=os.environ["OPENAI_BASE_URL"])
     summaries = {}
 
+    logger.info("Summarizing %d claim group(s)", len(grouped_claims))
+
     for key in grouped_claims:
         outlet_claims = grouped_claims[key]
+        logger.info("Summarizing claim: %.80s", key)
 
         prompt = f"""
         Summarize the following claims and their corresponding verdicts into a concise, neutral summary.
@@ -47,17 +53,24 @@ def generate_summary(grouped_claims: list[dict]) -> SummaryResult:
         {outlet_claims}
         """
 
-        response = client.chat.completions.parse(
-            model="gpt-5.6-luna",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are a precise summarization assistant.",
-                },
-                {"role": "user", "content": prompt},
-            ],
-            response_format=SummaryResult)
+        try:
+            response = client.chat.completions.parse(
+                model="gpt-5.6-luna",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a precise summarization assistant.",
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+                response_format=SummaryResult)
 
-        summaries[key] = response.choices[0].message.parsed.model_dump()
+            summaries[key] = response.choices[0].message.parsed.model_dump()
+            logger.info("Summarized claim: %.80s", key)
+        except Exception as e:
+            logger.error("Failed to summarize claim %.80r: %s", key, e)
+
+    logger.info("Finished summarizing %d of %d claim group(s)",
+                len(summaries), len(grouped_claims))
 
     return summaries
